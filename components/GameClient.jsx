@@ -334,6 +334,49 @@ export default function GameClient({ game, user, initialMessages }) {
     return () => clearTimeout(timer);
   }, [isMyTurn, gameState.status]);
 
+  const handleBackClick = () => {
+    if (gameState.status === "PLAYING" || gameState.status === "SELECTING") {
+      const confirmExit = window.confirm("Are you sure you want to exit? Leaving the game will forfeit the match.");
+      if (confirmExit) {
+        router.push("/");
+      }
+    } else {
+      router.push("/");
+    }
+  };
+
+  // Warn on page close / refresh and intercept browser back button
+  useEffect(() => {
+    if (gameState.status !== "PLAYING" && gameState.status !== "SELECTING") return;
+
+    const handleBeforeUnload = (e) => {
+      e.preventDefault();
+      e.returnValue = "Leaving this page will forfeit the game. Are you sure?";
+      return e.returnValue;
+    };
+
+    // Push dummy state to intercept back button
+    window.history.pushState(null, null, window.location.href);
+
+    const handlePopState = () => {
+      const confirmExit = window.confirm("Are you sure you want to exit? Leaving the game will forfeit the match.");
+      if (confirmExit) {
+        router.push("/");
+      } else {
+        // Push back state to keep them here
+        window.history.pushState(null, null, window.location.href);
+      }
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    window.addEventListener("popstate", handlePopState);
+
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      window.removeEventListener("popstate", handlePopState);
+    };
+  }, [gameState.status, router]);
+
   // Shield selection count toast and haptic trigger
   useEffect(() => {
     if (gameState.status !== "SELECTING" || !readyToSelect || hasLockedSelections) return;
@@ -665,7 +708,7 @@ export default function GameClient({ game, user, initialMessages }) {
       <header className="w-full top-0 sticky bg-white/80 backdrop-blur-xl border-b border-slate-200 shadow-sm z-40 flex justify-between items-center px-5 py-2 h-14">
         <div className="flex items-center gap-3">
           <button
-            onClick={() => router.push("/")}
+            onClick={handleBackClick}
             className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 hover:bg-slate-200 active-scale cursor-pointer"
           >
             <span className="material-symbols-outlined text-[20px]">arrow_back</span>
