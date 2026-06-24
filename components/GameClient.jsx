@@ -717,7 +717,10 @@ export default function GameClient({ game, user, initialMessages }) {
                 </p>
               </div>
             )}
-              {/* ACTIVE GAMEBOARD */}
+          </div>
+        )}
+
+        {/* ACTIVE GAMEBOARD */}
         {gameState.status === "PLAYING" && (
           gameState.mode === "MEMORY" ? (
             <div className="flex-grow flex flex-col py-2 gap-4">
@@ -884,8 +887,6 @@ export default function GameClient({ game, user, initialMessages }) {
               </div>
             </div>
           )
-        )}
-          </div>
         )}
 
         {/* GAME FINISHED VIEW */}

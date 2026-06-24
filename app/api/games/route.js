@@ -58,8 +58,10 @@ export async function POST(request) {
     if (opponent.oneSignalPlayerId) {
       await sendPushNotification({
         playerId: opponent.oneSignalPlayerId,
-        title: "1v1 Game Invite! 🎮",
-        message: `${user.name || user.email} invited you to play a 1v1 Grid Battleship game!`,
+        title: mode === "MEMORY" ? "1v1 Memory Match Invite! 🧩" : "1v1 Grid Battleship Invite! 🎮",
+        message: mode === "MEMORY"
+          ? `${user.name || user.email} invited you to play Emoji Memory Match! 🧩`
+          : `${user.name || user.email} invited you to play a 1v1 Grid Battleship game! 🎯`,
         url: `/game/${game.id}`,
       });
     } else {
