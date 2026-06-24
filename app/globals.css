@@ -1,0 +1,149 @@
+@import "tailwindcss";
+
+
+
+@theme {
+  --color-primary: #0040e0;
+  --color-secondary: #731be5;
+  --color-tertiary: #8a3f00;
+  --color-on-background: #171c1f;
+  --color-on-surface: #171c1f;
+  --color-on-surface-variant: #434656;
+  --color-outline: #747688;
+  --color-outline-variant: #c4c5d9;
+  
+  --color-surface-container-low: #f0f4f8;
+  --color-surface-container: #eaeef2;
+  --color-surface-container-high: #e4e9ed;
+  --color-surface-container-highest: #dfe3e7;
+  --color-surface-container-lowest: #ffffff;
+  --color-surface-bright: #f6fafe;
+  --color-surface-dim: #d6dade;
+  
+  --font-display: "Plus Jakarta Sans", sans-serif;
+  --font-body: "Rubik", sans-serif;
+  
+  --radius-xl: 0.75rem;
+}
+
+body {
+  background-color: #f6fafe;
+  color: #171c1f;
+  font-family: "Rubik", system-ui, -apple-system, sans-serif;
+}
+
+/* Custom Tactical Patterns and Gradients from Stitch */
+.gaming-pattern {
+  background-image: radial-gradient(circle at 2px 2px, rgba(0, 64, 224, 0.05) 1px, transparent 0);
+  background-size: 24px 24px;
+}
+
+.glossy-shine {
+  position: relative;
+  overflow: hidden;
+}
+.glossy-shine::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+}
+
+.card-shadow {
+  box-shadow: 0px 8px 24px rgba(0,0,0,0.08);
+}
+
+.active-scale:active {
+  transform: scale(0.95);
+}
+
+.btn-3d-blue {
+  background: linear-gradient(135deg, #2e5bff 0%, #0040e0 100%);
+  border-bottom: 4px solid #001356;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+.btn-3d-green {
+  background: linear-gradient(135deg, #00c853 0%, #009624 100%);
+  border-bottom: 4px solid #004d40;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+.btn-3d-orange {
+  background: linear-gradient(135deg, #ff6d00 0%, #e65100 100%);
+  border-bottom: 4px solid #3e2723;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+.btn-3d-purple {
+  background: linear-gradient(135deg, #731be5 0%, #5d00c2 100%);
+  border-bottom: 4px solid #270058;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.glossy-primary {
+  background: linear-gradient(180deg, #2e5bff 0%, #0040e0 100%);
+  border-bottom: 4px solid #002ba1;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+.glossy-secondary {
+  background: linear-gradient(180deg, #8d42ff 0%, #731be5 100%);
+  border-bottom: 4px solid #5010a8;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+.glossy-surface {
+  background: #ffffff;
+  box-shadow: 0px 8px 24px rgba(0,0,0,0.06);
+  border: 1px solid #E2E8F0;
+}
+
+.action-fire-gradient {
+  background: linear-gradient(135deg, #FF4B2B 0%, #FF416C 100%);
+  border-bottom: 4px solid #B01E3E;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.vs-badge {
+  background: linear-gradient(180deg, #171c1f 0%, #2c3134 100%);
+  transform: rotate(-10deg);
+}
+
+.user-ready-glow {
+  box-shadow: 0 0 20px rgba(50, 204, 57, 0.4);
+}
+
+.scroll-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Animations for emoji fly away */
+@keyframes fly-emoji {
+  0% {
+    transform: translateY(0) scale(0.5) rotate(0deg);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-400px) scale(1.5) rotate(15deg);
+    opacity: 0;
+  }
+}
+
+.emoji-fly {
+  position: absolute;
+  pointer-events: none;
+  font-size: 2.5rem;
+  z-index: 100;
+  animation: fly-emoji 2.5s ease-out forwards;
+}
+
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  display: inline-block;
+  vertical-align: middle;
+}
