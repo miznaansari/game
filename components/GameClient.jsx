@@ -30,6 +30,7 @@ export default function GameClient({ game, user, initialMessages }) {
   // Popups/Toasts & Forfeit state
   const [selectionsToast, setSelectionsToast] = useState(null);
   const [turnToast, setTurnToast] = useState(null);
+  const [warningToast, setWarningToast] = useState(null);
   const [opponentForfeited, setOpponentForfeited] = useState(false);
   
   const chatEndRef = useRef(null);
@@ -191,14 +192,23 @@ export default function GameClient({ game, user, initialMessages }) {
       }
     });
 
-    newSocket.on("memory-card-flipped", ({ userId, cellIndex, emoji, firstCard }) => {
-      console.log("CLIENT: memory-card-flipped received", { userId, cellIndex, emoji, firstCard });
+    newSocket.on("memory-card-flipped", ({ game, userId, cellIndex, emoji, firstCard, flippedIndices }) => {
+      console.log("CLIENT: memory-card-flipped received", { userId, cellIndex, emoji, firstCard, flippedIndices });
       triggerHaptic(20);
+      if (game) {
+        setGameState(game);
+      }
       setRevealedEmojis(prev => ({ ...prev, [cellIndex]: emoji }));
-      if (firstCard) {
-        setFlippedCards([cellIndex]);
+      if (flippedIndices && Array.isArray(flippedIndices)) {
+        setFlippedCards(flippedIndices);
       } else {
-        setFlippedCards(prev => [...prev, cellIndex]);
+        if (firstCard) {
+          setFlippedCards([cellIndex]);
+        } else {
+          setFlippedCards(prev => [...prev, cellIndex]);
+        }
+      }
+      if (!firstCard) {
         setIsProcessingFlip(true); // Disable input while waiting for result
       }
     });
@@ -258,6 +268,7 @@ export default function GameClient({ game, user, initialMessages }) {
 
     return () => {
       newSocket.disconnect();
+      if (window.warningTimeout) clearTimeout(window.warningTimeout);
     };
   }, [gameState.id, user.id]);
 
@@ -534,6 +545,16 @@ export default function GameClient({ game, user, initialMessages }) {
         </div>
       )}
 
+      {/* Warning Overlay Toast */}
+      {warningToast && (
+        <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 pointer-events-none">
+          <div className="float-toast-in bg-rose-600/95 text-white text-xs font-bold px-4 py-2 rounded-full shadow-lg border border-rose-500/50 flex items-center gap-1.5 backdrop-blur-md">
+            <span className="material-symbols-outlined text-[16px] text-white">warning</span>
+            <span>{warningToast}</span>
+          </div>
+        </div>
+      )}
+
       {/* Turn Change Overlay Banner */}
       {turnToast && (
         <div key={turnToast} className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 pointer-events-none">
@@ -785,7 +806,13 @@ export default function GameClient({ game, user, initialMessages }) {
                         disabled={isMatched || isFlipped || isProcessingFlip}
                         onClick={() => {
                           console.log("Memory Card Clicked:", { index, isMatched, isFlipped, isMyTurn, isProcessingFlip, status: gameState.status, turn: gameState.turn, userId: user.id });
-                          if (isMyTurn && !isProcessingFlip) {
+                          if (!isMyTurn) {
+                            setWarningToast("Wait, it's the enemy's turn!");
+                            if (window.warningTimeout) clearTimeout(window.warningTimeout);
+                            window.warningTimeout = setTimeout(() => setWarningToast(null), 1500);
+                            return;
+                          }
+                          if (!isProcessingFlip) {
                             socket.emit("flip-memory-card", {
                               gameId: gameState.id,
                               userId: user.id,
