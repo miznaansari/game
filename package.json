@@ -3,11 +3,11 @@
   "version": "0.1.12",
   "private": true,
   "scripts": {
-    "dev": "concurrently \"next dev\" \"node socket-server.js\"",
+    "dev": "concurrently \"next dev\" \"node socket/socket-server.js\"",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "socket": "node socket-server.js",
+    "socket": "node socket/socket-server.js",
     "postinstall": "prisma generate"
   },
   "dependencies": {
