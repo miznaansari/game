@@ -7,19 +7,26 @@ const path = require("path");
 
 let prisma;
 try {
-  const envPath = path.join(__dirname, ".env");
-  const envFile = fs.readFileSync(envPath, "utf8");
-  const envVars = {};
-  envFile.split("\n").forEach(line => {
-    const parts = line.split("=");
-    if (parts.length >= 2) {
-      envVars[parts[0].trim()] = parts.slice(1).join("=").trim().replace(/^"(.*)"$/, "$1");
-    }
-  });
+  let dbUrl = process.env.DATABASE_URL;
 
-  const dbUrl = envVars.DATABASE_URL;
+  // If DATABASE_URL is not in system env, try reading from local .env
   if (!dbUrl) {
-    throw new Error("DATABASE_URL missing in .env");
+    const envPath = path.join(__dirname, ".env");
+    if (fs.existsSync(envPath)) {
+      const envFile = fs.readFileSync(envPath, "utf8");
+      const envVars = {};
+      envFile.split("\n").forEach(line => {
+        const parts = line.split("=");
+        if (parts.length >= 2) {
+          envVars[parts[0].trim()] = parts.slice(1).join("=").trim().replace(/^"(.*)"$/, "$1");
+        }
+      });
+      dbUrl = envVars.DATABASE_URL;
+    }
+  }
+
+  if (!dbUrl) {
+    throw new Error("DATABASE_URL is not set in environment or .env file");
   }
 
   const parsedUrl = new URL(dbUrl);
@@ -34,11 +41,20 @@ try {
   prisma = new PrismaClient({ adapter });
   console.log("Prisma initialized successfully with MariaDB adapter in socket-server");
 } catch (err) {
-  console.error("Prisma MariaDB adapter initialization failed in socket-server, falling back:", err);
+  console.error("Prisma initialization failed in socket-server:", err);
+  // Fail-safe default (though it may error in Prisma 7 if adapter is required)
   prisma = new PrismaClient();
 }
 
-const server = http.createServer();
+const server = http.createServer((req, res) => {
+  if (req.url === "/health" || req.url === "/") {
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ status: "OK", message: "Socket server is running" }));
+  } else {
+    res.writeHead(404, { "Content-Type": "text/plain" });
+    res.end("Not Found");
+  }
+});
 const io = new Server(server, {
   cors: {
     origin: "*", // Allow all connections, or process.env.NEXT_PUBLIC_APP_URL
@@ -57,14 +73,14 @@ io.on("connection", (socket) => {
   // User logs in / goes online
   socket.on("user-online", (userId) => {
     if (!userId) return;
-    
+
     socketToUser.set(socket.id, userId);
-    
+
     if (!onlineUsers.has(userId)) {
       onlineUsers.set(userId, new Set());
     }
     onlineUsers.get(userId).add(socket.id);
-    
+
     console.log(`User ${userId} is online. Sockets:`, onlineUsers.get(userId).size);
 
     // Broadcast status to friends
@@ -84,7 +100,7 @@ io.on("connection", (socket) => {
   // Joining a game room
   socket.on("join-game", async ({ gameId, userId }) => {
     if (!gameId || !userId) return;
-    
+
     const roomName = `game:${gameId}`;
     socket.join(roomName);
     console.log(`Socket ${socket.id} (User: ${userId}) joined room ${roomName}`);
@@ -163,13 +179,13 @@ io.on("connection", (socket) => {
       const opponentId = isPlayer1 ? game.player2Id : game.player1Id;
 
       // Selections to hit
-      const opponentSelections = isPlayer1 
-        ? (game.player2Selections || []) 
+      const opponentSelections = isPlayer1
+        ? (game.player2Selections || [])
         : (game.player1Selections || []);
 
       // Current guesses list
-      const myGuesses = isPlayer1 
-        ? (game.player1Guesses || []) 
+      const myGuesses = isPlayer1
+        ? (game.player1Guesses || [])
         : (game.player2Guesses || []);
 
       // Don't allow guessing the same cell twice
@@ -281,7 +297,7 @@ io.on("connection", (socket) => {
   socket.on("disconnect", () => {
     const userId = socketToUser.get(socket.id);
     console.log(`Socket disconnected: ${socket.id}`);
-    
+
     if (userId) {
       const userSockets = onlineUsers.get(userId);
       if (userSockets) {
@@ -304,7 +320,14 @@ function broadcastStatusUpdate(userId, status) {
   io.emit("friend-status-changed", { userId, status });
 }
 
-const PORT = process.env.SOCKET_PORT || 3001;
-server.listen(PORT, () => {
-  console.log(`Socket.io Server running on port ${PORT}`);
-});
+if (process.env.VERCEL) {
+  console.log("Running in Vercel Serverless environment. Exporting server handler.");
+  module.exports = server;
+} else {
+  const PORT = process.env.SOCKET_PORT || process.env.PORT || 3001;
+  server.listen(PORT, () => {
+    console.log(`Socket.io Server running on port ${PORT}`);
+  });
+}
+
+

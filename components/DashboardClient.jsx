@@ -53,7 +53,9 @@ export default function DashboardClient({ user }) {
   // Socket Connection and logic
   useEffect(() => {
     const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:3001";
-    const newSocket = io(socketUrl);
+    const newSocket = io(socketUrl, {
+      transports: ["websocket"]
+    });
     setSocket(newSocket);
 
     newSocket.on("connect", () => {
