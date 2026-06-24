@@ -650,7 +650,7 @@ export default function GameClient({ game, user, initialMessages }) {
         
         {/* Opponent Disconnection Warning */}
         {opponentDisconnected && (
-          <div className="float-toast-in pointer-events-auto w-full max-w-full bg-slate-900 border border-slate-800 text-white p-3 rounded-2xl shadow-lg flex flex-col gap-2.5 backdrop-blur-md overflow-hidden">
+          <div className="persist-alert-in pointer-events-auto w-full max-w-full bg-slate-900 border border-slate-800 text-white p-3 rounded-2xl shadow-lg flex flex-col gap-2.5 backdrop-blur-md overflow-hidden">
             <div className="flex items-center gap-3">
               <span className="material-symbols-outlined text-[20px] text-rose-500 shrink-0 animate-pulse">wifi_off</span>
               <div className="flex-1 min-w-0">
@@ -679,7 +679,7 @@ export default function GameClient({ game, user, initialMessages }) {
 
         {/* Opponent Reconnection Success */}
         {reconnectedToast && (
-          <div className="float-toast-in w-full max-w-full bg-emerald-950/95 border border-emerald-800 text-emerald-100 p-3 rounded-2xl shadow-lg flex items-center gap-3 backdrop-blur-md overflow-hidden">
+          <div className="persist-alert-in w-full max-w-full bg-emerald-950/95 border border-emerald-800 text-emerald-100 p-3 rounded-2xl shadow-lg flex items-center gap-3 backdrop-blur-md overflow-hidden">
             <span className="material-symbols-outlined text-[20px] text-emerald-400 shrink-0">wifi</span>
             <div className="flex-1 min-w-0">
               <p className="text-[9px] font-bold text-emerald-300 uppercase tracking-wider">Connected</p>
@@ -690,7 +690,7 @@ export default function GameClient({ game, user, initialMessages }) {
 
         {/* Turn Change Pill */}
         {turnToast && (
-          <div className={`float-toast-in px-5 py-2 rounded-full shadow-lg border backdrop-blur-md flex items-center justify-center gap-2.5 font-display font-extrabold max-w-full overflow-hidden ${
+          <div className={`persist-alert-in px-5 py-2 rounded-full shadow-lg border backdrop-blur-md flex items-center justify-center gap-2.5 font-display font-extrabold max-w-full overflow-hidden ${
             turnToast === "YOUR TURN"
               ? "bg-gradient-to-r from-emerald-500/95 to-teal-500/95 border-emerald-400/40 text-white shadow-emerald-500/20"
               : "bg-gradient-to-r from-rose-500/95 to-orange-500/95 border-rose-400/40 text-white shadow-rose-500/20"
@@ -710,7 +710,7 @@ export default function GameClient({ game, user, initialMessages }) {
 
         {/* Warning Toast */}
         {warningToast && (
-          <div className="float-toast-in max-w-full bg-rose-600/95 text-white text-xs font-semibold px-4 py-2 rounded-full shadow-lg border border-rose-500/50 flex items-center gap-1.5 backdrop-blur-md text-center break-all overflow-hidden">
+          <div className="persist-alert-in max-w-full bg-rose-600/95 text-white text-xs font-semibold px-4 py-2 rounded-full shadow-lg border border-rose-500/50 flex items-center gap-1.5 backdrop-blur-md text-center break-all overflow-hidden">
             <span className="material-symbols-outlined text-[16px] text-white shrink-0">warning</span>
             <span className="truncate">{warningToast}</span>
           </div>
@@ -718,7 +718,7 @@ export default function GameClient({ game, user, initialMessages }) {
 
         {/* Selections Overlay Toast */}
         {selectionsToast && (
-          <div className="float-toast-in max-w-full bg-slate-900/95 text-white text-xs font-semibold px-4 py-2 rounded-full shadow-lg border border-slate-700/50 flex items-center gap-1.5 backdrop-blur-md text-center break-all overflow-hidden">
+          <div className="persist-alert-in max-w-full bg-slate-900/95 text-white text-xs font-semibold px-4 py-2 rounded-full shadow-lg border border-slate-700/50 flex items-center gap-1.5 backdrop-blur-md text-center break-all overflow-hidden">
             <span className="material-symbols-outlined text-[16px] text-indigo-400 shrink-0">shield</span>
             <span className="truncate">{selectionsToast}</span>
           </div>
@@ -731,7 +731,7 @@ export default function GameClient({ game, user, initialMessages }) {
               setShowChatPanel(true);
               setChatNotification(null);
             }}
-            className="float-toast-in pointer-events-auto w-full max-w-full bg-slate-900/95 hover:bg-slate-950 border border-slate-800 text-white rounded-2xl shadow-xl p-3 flex items-start gap-2.5 text-left transition active:scale-95 cursor-pointer backdrop-blur-md overflow-hidden"
+            className="persist-alert-in pointer-events-auto w-full max-w-full bg-slate-900/95 hover:bg-slate-950 border border-slate-800 text-white rounded-2xl shadow-xl p-3 flex items-start gap-2.5 text-left transition active:scale-95 cursor-pointer backdrop-blur-md overflow-hidden"
           >
             <div className="w-8 h-8 rounded-lg bg-indigo-600/30 flex items-center justify-center text-indigo-400 border border-indigo-500/20 shrink-0">
               <span className="material-symbols-outlined text-[16px]">chat_bubble</span>
