@@ -312,7 +312,7 @@ export default function GameClient({ game, user, initialMessages }) {
 
     const timer = setTimeout(() => {
       setTurnToast(null);
-    }, 1500);
+    }, 3000);
 
     return () => clearTimeout(timer);
   }, [isMyTurn, gameState.status]);
@@ -578,18 +578,18 @@ export default function GameClient({ game, user, initialMessages }) {
 
       {/* Turn Change Overlay Banner */}
       {turnToast && (
-        <div key={turnToast} className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 pointer-events-none">
-          <div className={`float-banner-in px-8 py-5 rounded-3xl shadow-2xl backdrop-blur-md flex flex-col items-center border font-display font-extrabold ${
+        <div key={turnToast} className="fixed top-[68px] left-1/2 -translate-x-1/2 z-50 pointer-events-none w-auto shrink-0 select-none">
+          <div className={`float-toast-in px-5 py-2 rounded-full shadow-lg border backdrop-blur-md flex items-center justify-center gap-2.5 font-display font-extrabold ${
             turnToast === "YOUR TURN"
-              ? "bg-gradient-to-r from-emerald-500/90 to-teal-500/90 border-emerald-400/40 text-white shadow-emerald-500/30 scale-105"
-              : "bg-gradient-to-r from-rose-500/90 to-orange-500/90 border-rose-400/40 text-white shadow-rose-500/30 scale-105"
+              ? "bg-gradient-to-r from-emerald-500/95 to-teal-500/95 border-emerald-400/40 text-white shadow-emerald-500/20"
+              : "bg-gradient-to-r from-rose-500/95 to-orange-500/95 border-rose-400/40 text-white shadow-rose-500/20"
           }`}>
-            <span className="material-symbols-outlined text-[44px] mb-2 animate-bounce">
+            <span className="material-symbols-outlined text-[18px] animate-bounce shrink-0">
               {turnToast === "YOUR TURN"
                 ? (gameState.mode === "MEMORY" ? "sports_esports" : "military_tech")
                 : "hourglass_empty"}
             </span>
-            <span className="text-xl tracking-wider uppercase font-black text-center">
+            <span className="text-[11px] tracking-wider uppercase font-black whitespace-nowrap">
               {turnToast === "YOUR TURN"
                 ? (gameState.mode === "MEMORY" ? "Your Turn! 🎮" : "Your Turn! ⚔️")
                 : (gameState.mode === "MEMORY" ? "Enemy Turn! 👾" : "Enemy Turn! ⏳")}
@@ -605,17 +605,17 @@ export default function GameClient({ game, user, initialMessages }) {
             setShowChatPanel(true);
             setChatNotification(null);
           }}
-          className="fixed top-20 left-1/2 -translate-x-1/2 z-40 w-[92%] max-w-sm bg-slate-900/95 hover:bg-slate-950 border border-slate-700/60 rounded-2xl shadow-xl p-3.5 flex items-start gap-3 backdrop-blur-md text-left transition active:scale-95 cursor-pointer float-toast-in animate-pulse-subtle pointer-events-auto"
+          className="fixed top-[112px] left-1/2 -translate-x-1/2 z-40 w-[90%] max-w-xs bg-slate-900/95 hover:bg-slate-950 border border-slate-700/60 rounded-2xl shadow-xl p-3 flex items-start gap-2.5 backdrop-blur-md text-left transition active:scale-95 cursor-pointer float-toast-in animate-pulse-subtle pointer-events-auto"
         >
-          <div className="w-9 h-9 rounded-full bg-indigo-600/30 flex items-center justify-center text-indigo-400 border border-indigo-500/20 shrink-0">
-            <span className="material-symbols-outlined text-[20px]">chat_bubble</span>
+          <div className="w-8 h-8 rounded-full bg-indigo-600/30 flex items-center justify-center text-indigo-400 border border-indigo-500/20 shrink-0">
+            <span className="material-symbols-outlined text-[16px]">chat_bubble</span>
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center justify-between gap-2">
-              <span className="text-[10px] font-bold text-indigo-300 uppercase tracking-wider truncate">
+              <span className="text-[9px] font-bold text-indigo-300 uppercase tracking-wider truncate">
                 {chatNotification.senderName}
               </span>
-              <span className="text-[9px] font-semibold text-slate-400">Click to reply</span>
+              <span className="text-[8px] font-semibold text-slate-400">Reply</span>
             </div>
             <p className="text-xs text-slate-100 font-medium truncate mt-0.5">
               {chatNotification.content}
