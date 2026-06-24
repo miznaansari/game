@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { io } from "socket.io-client";
+import PWAInstallBanner from "./PWAInstallBanner";
 
 export default function DashboardClient({ user }) {
   const router = useRouter();
@@ -276,6 +277,8 @@ export default function DashboardClient({ user }) {
                   <p className="text-on-surface-variant font-bold text-xs uppercase tracking-wider">Welcome back,</p>
                   <h2 className="font-display text-2xl font-extrabold text-on-surface">{user.name || user.email.split("@")[0]}</h2>
                 </section>
+
+                <PWAInstallBanner />
 
                 {/* Bento Grid layout */}
                 <div className="grid grid-cols-1 gap-4">
