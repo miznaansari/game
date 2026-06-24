@@ -36,22 +36,26 @@ export async function POST(request) {
 
     const opponent = isPlayer1 ? game.player2 : game.player1;
     const senderName = user.name || user.email.split("@")[0];
+    const modeText = game.mode === "MEMORY" ? "Emoji Memory Match" : "Grid Battleship";
 
-    if (opponent.oneSignalPlayerId) {
-      const modeText = game.mode === "MEMORY" ? "Emoji Memory Match" : "Grid Battleship";
-      await sendPushNotification({
-        playerId: opponent.oneSignalPlayerId,
-        title: "I am waiting! Come back 🎮",
-        message: `${senderName} is waiting for you in our ${modeText} match!`,
-        url: `/game/${game.id}`,
-      });
+    // Primary: target by opponent's DB user ID (external_id linked via OneSignal.login())
+    // Fallback: target by stored subscription UUID if external_id targeting fails
+    const result = await sendPushNotification({
+      externalId: opponent.id,              // preferred — works if user called OneSignal.login()
+      playerId: opponent.oneSignalPlayerId, // fallback — legacy subscription UUID
+      title: "I am waiting! Come back 🎮",
+      message: `${senderName} is waiting for you in our ${modeText} match!`,
+      url: `/game/${game.id}`,
+    });
+
+    if (result.success) {
       return NextResponse.json({ success: true, message: "Push notification sent successfully" });
     }
 
-    return NextResponse.json({ 
-      success: false, 
-      reason: "opponent_no_push_id",
-      message: "Opponent hasn't enabled push notifications on their device" 
+    return NextResponse.json({
+      success: false,
+      reason: "push_failed",
+      message: result.error || "Failed to send push notification",
     });
   } catch (error) {
     console.error("Nudge error:", error);

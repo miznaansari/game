@@ -54,18 +54,20 @@ export async function POST(request) {
       },
     });
 
-    // Send push notification via OneSignal if the receiver has registered a player ID
-    if (opponent.oneSignalPlayerId) {
-      await sendPushNotification({
-        playerId: opponent.oneSignalPlayerId,
-        title: mode === "MEMORY" ? "1v1 Memory Match Invite! 🧩" : "1v1 Grid Battleship Invite! 🎮",
-        message: mode === "MEMORY"
-          ? `${user.name || user.email} invited you to play Emoji Memory Match! 🧩`
-          : `${user.name || user.email} invited you to play a 1v1 Grid Battleship game! 🎯`,
-        url: `/game/${game.id}`,
-      });
-    } else {
-      console.log(`Opponent ${receiverId} does not have a OneSignal player ID registered. Skipped push.`);
+    // Send push: primary = external_id (DB user ID linked via OneSignal.login()),
+    // fallback = subscription UUID stored in DB
+    await sendPushNotification({
+      externalId: opponent.id,
+      playerId: opponent.oneSignalPlayerId,
+      title: mode === "MEMORY" ? "1v1 Memory Match Invite! 🧩" : "1v1 Grid Battleship Invite! 🎮",
+      message: mode === "MEMORY"
+        ? `${user.name || user.email} invited you to play Emoji Memory Match! 🧩`
+        : `${user.name || user.email} invited you to play a 1v1 Grid Battleship game! 🎯`,
+      url: `/game/${game.id}`,
+    });
+
+    {
+      console.log(`Push notification attempt completed for opponent ${receiverId}.`);
     }
 
     return NextResponse.json({
