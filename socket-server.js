@@ -236,14 +236,29 @@ io.on("connection", (socket) => {
 
   // Memory Game card flipping
   socket.on("flip-memory-card", async ({ gameId, userId, cellIndex }) => {
-    if (!gameId || !userId || cellIndex === undefined) return;
+    console.log(`[SOCKET] flip-memory-card event: gameId=${gameId}, userId=${userId}, cellIndex=${cellIndex}`);
+    if (!gameId || !userId || cellIndex === undefined) {
+      console.log("[SOCKET] flip-memory-card: Missing parameters");
+      return;
+    }
     const roomName = `game:${gameId}`;
 
     try {
       const game = await prisma.game.findUnique({ where: { id: gameId } });
-      if (!game || game.status !== "PLAYING" || game.mode !== "MEMORY") return;
+      if (!game) {
+        console.log(`[SOCKET] flip-memory-card: Game ${gameId} not found`);
+        return;
+      }
+      if (game.status !== "PLAYING") {
+        console.log(`[SOCKET] flip-memory-card: Game status is not PLAYING (current: ${game.status})`);
+        return;
+      }
+      if (game.mode !== "MEMORY") {
+        console.log(`[SOCKET] flip-memory-card: Game mode is not MEMORY (current: ${game.mode})`);
+        return;
+      }
       if (game.turn !== userId) {
-        console.log(`Memory Flip rejected: Not user ${userId}'s turn.`);
+        console.log(`[SOCKET] flip-memory-card rejected: Not user ${userId}'s turn (current turn: ${game.turn})`);
         return;
       }
 

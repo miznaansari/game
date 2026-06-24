@@ -132,7 +132,9 @@ export default function GameClient({ game, user, initialMessages }) {
 
   // Socket setup and custom presence pings
   useEffect(() => {
-    const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:3001";
+    const socketUrl = (typeof window !== "undefined" && window.location.hostname === "localhost")
+      ? "http://localhost:3001"
+      : (process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:3001");
     const newSocket = io(socketUrl, {
       transports: ["websocket"]
     });
