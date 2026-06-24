@@ -9,7 +9,7 @@ export default function GameClient({ game, user, initialMessages }) {
   const router = useRouter();
   const [gameState, setGameState] = useState(game);
   const [socket, setSocket] = useState(null);
-  
+
   // Custom States
   const [opponentJoined, setOpponentJoined] = useState(false);
   const [readyToSelect, setReadyToSelect] = useState(true);
@@ -20,7 +20,7 @@ export default function GameClient({ game, user, initialMessages }) {
   const [hasLockedSelections, setHasLockedSelections] = useState(false);
   const [timeLeft, setTimeLeft] = useState(20);
   const [firingIndex, setFiringIndex] = useState(null);
-  
+
   // Chat and emoji
   const [messages, setMessages] = useState(initialMessages || []);
   const [newMessage, setNewMessage] = useState("");
@@ -32,7 +32,7 @@ export default function GameClient({ game, user, initialMessages }) {
   const [turnToast, setTurnToast] = useState(null);
   const [warningToast, setWarningToast] = useState(null);
   const [opponentForfeited, setOpponentForfeited] = useState(false);
-  
+
   const chatEndRef = useRef(null);
 
   const isPlayer1 = gameState.player1Id === user.id;
@@ -54,13 +54,13 @@ export default function GameClient({ game, user, initialMessages }) {
   const [flippedCards, setFlippedCards] = useState([]);
   const [revealedEmojis, setRevealedEmojis] = useState({});
   const [isProcessingFlip, setIsProcessingFlip] = useState(false);
-  
+
   const myScore = isPlayer1 ? (gameState.player1Score || 0) : (gameState.player2Score || 0);
   const opponentScore = isPlayer1 ? (gameState.player2Score || 0) : (gameState.player1Score || 0);
 
   const mySelections = parseJsonField(isPlayer1 ? gameState.player1Selections : gameState.player2Selections);
   const opponentSelections = parseJsonField(isPlayer1 ? gameState.player2Selections : gameState.player1Selections);
-  
+
   const myGuesses = parseJsonField(isPlayer1 ? gameState.player1Guesses : gameState.player2Guesses);
   const opponentGuesses = parseJsonField(isPlayer1 ? gameState.player2Guesses : gameState.player1Guesses);
 
@@ -72,14 +72,14 @@ export default function GameClient({ game, user, initialMessages }) {
   useEffect(() => {
     if (gameState.mode === "MEMORY" && memoryGridList.length > 0) {
       const initialRevealed = {};
-      
+
       matchedList.forEach(idx => {
         initialRevealed[idx] = memoryGridList[idx];
       });
       flippedList.forEach(idx => {
         initialRevealed[idx] = memoryGridList[idx];
       });
-      
+
       setRevealedEmojis(initialRevealed);
       setFlippedCards(flippedList);
     }
@@ -307,8 +307,8 @@ export default function GameClient({ game, user, initialMessages }) {
 
     const left = 5 - len;
     setSelectionsToast(
-      left > 0 
-        ? `${len}/5 Shields Hidden (Hide ${left} More)` 
+      left > 0
+        ? `${len}/5 Shields Hidden (Hide ${left} More)`
         : "5/5 Shields Hidden (Ready to Lock!)"
     );
 
@@ -438,11 +438,10 @@ export default function GameClient({ game, user, initialMessages }) {
               key={index}
               disabled={hasLockedSelections}
               onClick={() => handleCellClick(index)}
-              className={`rounded-xl cursor-pointer flex items-center justify-center font-display text-xs transition-all duration-200 active:scale-95 h-full w-full ${
-                isSelected
+              className={`rounded-xl cursor-pointer flex items-center justify-center font-display text-xs transition-all duration-200 active:scale-95 h-full w-full ${isSelected
                   ? "cell-selected-light font-extrabold"
                   : "cell-btn-light font-bold"
-              }`}
+                }`}
             >
               {index + 1}
             </button>
@@ -558,11 +557,10 @@ export default function GameClient({ game, user, initialMessages }) {
       {/* Turn Change Overlay Banner */}
       {turnToast && (
         <div key={turnToast} className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 pointer-events-none">
-          <div className={`float-banner-in px-8 py-4 rounded-2xl shadow-xl backdrop-blur-md flex flex-col items-center border font-display font-extrabold ${
-            turnToast === "YOUR TURN"
+          <div className={`float-banner-in px-8 py-4 rounded-2xl shadow-xl backdrop-blur-md flex flex-col items-center border font-display font-extrabold ${turnToast === "YOUR TURN"
               ? "bg-emerald-500/95 border-emerald-400 text-white shadow-emerald-500/20"
               : "bg-amber-500/95 border-amber-400 text-white shadow-amber-500/20"
-          }`}>
+            }`}>
             <span className="material-symbols-outlined text-[36px] mb-1 animate-bounce">
               {turnToast === "YOUR TURN" ? "sports_esports" : "hourglass_empty"}
             </span>
@@ -576,7 +574,7 @@ export default function GameClient({ game, user, initialMessages }) {
       {/* Header */}
       <header className="w-full top-0 sticky bg-white/80 backdrop-blur-xl border-b border-slate-200 shadow-sm z-40 flex justify-between items-center px-5 py-2 h-14">
         <div className="flex items-center gap-3">
-          <button 
+          <button
             onClick={() => router.push("/")}
             className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 hover:bg-slate-200 active-scale cursor-pointer"
           >
@@ -597,7 +595,7 @@ export default function GameClient({ game, user, initialMessages }) {
 
       {/* Main Container */}
       <main className="flex-grow flex flex-col px-5 pt-3 max-w-md mx-auto w-full relative z-10 justify-between overflow-hidden h-[calc(100dvh-3.5rem)]">
-        
+
         {/* LOBBY VIEW */}
         {gameState.status === "SELECTING" && !readyToSelect && !hasLockedSelections && (
           <div className="flex-grow flex flex-col justify-between py-4 gap-4">
@@ -642,9 +640,8 @@ export default function GameClient({ game, user, initialMessages }) {
               {/* Opponent */}
               <div className="col-span-5 flex flex-col items-center gap-3">
                 <div className="relative group">
-                  <div className={`w-20 h-20 rounded-3xl overflow-hidden border-2 flex items-center justify-center font-display font-extrabold text-lg uppercase shadow-sm transition-all ${
-                    opponentJoined ? "border-pink-500 bg-gradient-to-tr from-pink-500 to-rose-500 text-white" : "border-slate-200 bg-slate-100 grayscale opacity-45 text-slate-400"
-                  }`}>
+                  <div className={`w-20 h-20 rounded-3xl overflow-hidden border-2 flex items-center justify-center font-display font-extrabold text-lg uppercase shadow-sm transition-all ${opponentJoined ? "border-pink-500 bg-gradient-to-tr from-pink-500 to-rose-500 text-white" : "border-slate-200 bg-slate-100 grayscale opacity-45 text-slate-400"
+                    }`}>
                     {opponent?.name ? opponent.name[0] : (opponent?.email ? opponent.email[0] : "?")}
                   </div>
                   <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 px-2.5 py-0.5 bg-slate-200 text-slate-600 rounded-full font-bold text-[9px] shadow-sm whitespace-nowrap">
@@ -671,7 +668,7 @@ export default function GameClient({ game, user, initialMessages }) {
             </div>
 
             {/* Quick Chat card */}
-            <div 
+            <div
               onClick={() => sendQuickChat("Let's have a good game!")}
               className="light-card rounded-2xl p-4 flex items-center gap-3 cursor-pointer active-scale hover:bg-slate-50 transition"
             >
@@ -713,7 +710,7 @@ export default function GameClient({ game, user, initialMessages }) {
                     Hide 5 Secret Blocks
                   </h3>
                   <p className="text-xs text-slate-500">Tap 5 grid coordinates below to hide your blocks.</p>
-                  
+
                   {/* Timer display */}
                   <div className="flex items-center justify-center gap-1.5 mt-2 bg-indigo-50 text-indigo-600 px-3.5 py-1 rounded-full font-bold text-xs w-max mx-auto border border-indigo-100/60">
                     <span className="material-symbols-outlined text-[16px] animate-spin">sync</span>
@@ -736,8 +733,8 @@ export default function GameClient({ game, user, initialMessages }) {
                 <div className="radar-spinner mb-2"></div>
                 <h3 className="font-display font-extrabold text-base text-slate-800">Selections Locked!</h3>
                 <p className="text-xs text-slate-500 font-semibold leading-relaxed max-w-[240px]">
-                  {opponentJoined 
-                    ? "Calibrating radar. Waiting for opponent to hide their blocks..." 
+                  {opponentJoined
+                    ? "Calibrating radar. Waiting for opponent to hide their blocks..."
                     : "Calibrating radar. Waiting for opponent to join..."}
                 </p>
               </div>
@@ -785,7 +782,7 @@ export default function GameClient({ game, user, initialMessages }) {
                     const isMatched = matchedList.includes(index);
                     const isFlipped = flippedCards.includes(index) || isMatched;
                     const emoji = revealedEmojis[index] || "";
-                    
+
                     let cellClass = "";
                     let cellContent = "";
 
@@ -813,17 +810,6 @@ export default function GameClient({ game, user, initialMessages }) {
                             return;
                           }
                           if (!isProcessingFlip) {
-                            // Optimistically flip the card on click immediately
-                            const emoji = memoryGridList[index];
-                            setRevealedEmojis(prev => ({ ...prev, [index]: emoji }));
-                            setFlippedCards(prev => {
-                              const next = [...prev, index];
-                              if (next.length === 2) {
-                                setIsProcessingFlip(true); // Disable input immediately on 2nd card selection
-                              }
-                              return next;
-                            });
-
                             socket.emit("flip-memory-card", {
                               gameId: gameState.id,
                               userId: user.id,
@@ -843,15 +829,15 @@ export default function GameClient({ game, user, initialMessages }) {
               {/* Instructions banner */}
               <div className="bg-slate-50 border border-slate-200/60 rounded-xl p-3 text-center">
                 <p className="text-[10px] text-slate-500 font-semibold leading-normal">
-                  {isMyTurn 
-                    ? "Your Turn! Flip two cards. Match pairs to keep your turn and score points." 
+                  {isMyTurn
+                    ? "Your Turn! Flip two cards. Match pairs to keep your turn and score points."
                     : "Enemy is choosing cards... Memorize flipped emojis!"}
                 </p>
               </div>
             </div>
           ) : (
             <div className="flex-grow flex flex-col py-2 gap-4">
-              
+
               {/* score and timer panel */}
               <div className="flex justify-between items-center light-card rounded-2xl p-4">
                 <div className="flex flex-col">
@@ -870,23 +856,21 @@ export default function GameClient({ game, user, initialMessages }) {
 
               {/* Attack/Defense Toggles (Custom fit for mobile) */}
               <div className="grid grid-cols-2 gap-2 p-1.5 bg-slate-200/80 border border-slate-300/40 rounded-xl">
-                <button 
+                <button
                   onClick={() => setActiveGridTab("attack")}
-                  className={`py-2 text-xs font-bold rounded-lg cursor-pointer transition-all active-scale ${
-                    activeGridTab === "attack" 
-                      ? "bg-gradient-to-r from-indigo-600 to-blue-600 text-white shadow-sm font-extrabold" 
+                  className={`py-2 text-xs font-bold rounded-lg cursor-pointer transition-all active-scale ${activeGridTab === "attack"
+                      ? "bg-gradient-to-r from-indigo-600 to-blue-600 text-white shadow-sm font-extrabold"
                       : "text-slate-600 hover:text-slate-800"
-                  }`}
+                    }`}
                 >
                   ATTACK GRID ({myGuesses.length})
                 </button>
-                <button 
+                <button
                   onClick={() => setActiveGridTab("defense")}
-                  className={`py-2 text-xs font-bold rounded-lg cursor-pointer transition-all active-scale ${
-                    activeGridTab === "defense" 
-                      ? "bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white shadow-sm font-extrabold" 
+                  className={`py-2 text-xs font-bold rounded-lg cursor-pointer transition-all active-scale ${activeGridTab === "defense"
+                      ? "bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white shadow-sm font-extrabold"
                       : "text-slate-600 hover:text-slate-800"
-                  }`}
+                    }`}
                 >
                   DEFENSE GRID ({opponentGuesses.length})
                 </button>
@@ -936,11 +920,10 @@ export default function GameClient({ game, user, initialMessages }) {
         {gameState.status === "FINISHED" && (
           <div className="flex-grow flex flex-col justify-center items-center py-6 gap-6">
             <div className="light-card rounded-3xl p-8 text-center max-w-sm w-full space-y-4 flex flex-col items-center">
-              <div className={`w-16 h-16 rounded-full flex items-center justify-center animate-bounce shadow-sm border ${
-                gameState.winnerId === user.id 
-                  ? "bg-amber-50 text-amber-500 border-amber-200" 
+              <div className={`w-16 h-16 rounded-full flex items-center justify-center animate-bounce shadow-sm border ${gameState.winnerId === user.id
+                  ? "bg-amber-50 text-amber-500 border-amber-200"
                   : "bg-slate-100 text-slate-400 border-slate-200"
-              }`}>
+                }`}>
                 <span className="material-symbols-outlined text-[36px]">
                   {gameState.winnerId === user.id ? "trophy" : (gameState.winnerId === null ? "handshake" : "sentiment_very_dissatisfied")}
                 </span>
@@ -951,10 +934,10 @@ export default function GameClient({ game, user, initialMessages }) {
               <p className="text-xs text-slate-500 font-semibold leading-relaxed">
                 {opponentForfeited
                   ? "Your opponent disconnected from the arena. Victory declared by forfeit!"
-                  : (gameState.mode === "MEMORY" 
-                    ? `Final score: ${myScore} vs ${opponentScore}` 
-                    : (gameState.winnerId === user.id 
-                      ? "Outstanding prediction! You successfully pinpointed all enemy blocks." 
+                  : (gameState.mode === "MEMORY"
+                    ? `Final score: ${myScore} vs ${opponentScore}`
+                    : (gameState.winnerId === user.id
+                      ? "Outstanding prediction! You successfully pinpointed all enemy blocks."
                       : "The enemy coordinate search revealed all your secret shields first."))
                 }
               </p>
@@ -973,7 +956,7 @@ export default function GameClient({ game, user, initialMessages }) {
         <div className="fixed bottom-16 left-0 w-full px-5 py-2 z-30 pointer-events-none flex justify-between items-center gap-3">
           <div className="pointer-events-auto bg-white/95 border border-slate-200/80 rounded-full py-1.5 px-4.5 shadow-lg flex items-center gap-2">
             {["😂", "🔥", "💥", "👍"].map(emoji => (
-              <button 
+              <button
                 key={emoji}
                 onClick={() => sendEmoji(emoji)}
                 className="text-xl active-scale cursor-pointer hover:scale-125 transition"
@@ -1001,7 +984,7 @@ export default function GameClient({ game, user, initialMessages }) {
                   <span className="material-symbols-outlined text-indigo-600">forum</span>
                   <h3 className="font-display font-extrabold text-sm text-slate-800">Battle Chat</h3>
                 </div>
-                <button 
+                <button
                   onClick={() => setShowChatPanel(false)}
                   className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 hover:bg-slate-200 active-scale cursor-pointer"
                 >
@@ -1019,18 +1002,17 @@ export default function GameClient({ game, user, initialMessages }) {
                   messages.map((msg) => {
                     const isMe = msg.senderId === user.id;
                     return (
-                      <div 
-                        key={msg.id} 
+                      <div
+                        key={msg.id}
                         className={`flex flex-col max-w-[85%] ${isMe ? "ml-auto items-end" : "mr-auto items-start"}`}
                       >
                         <span className="text-[9px] text-slate-500 font-bold mb-0.5 px-1 truncate">
                           {isMe ? "You" : msg.sender.name || msg.sender.email.split("@")[0]}
                         </span>
-                        <div className={`p-2.5 rounded-2xl text-xs leading-relaxed break-all ${
-                          isMe 
-                            ? "bg-indigo-600 text-white rounded-tr-none shadow-sm" 
+                        <div className={`p-2.5 rounded-2xl text-xs leading-relaxed break-all ${isMe
+                            ? "bg-indigo-600 text-white rounded-tr-none shadow-sm"
                             : "bg-slate-100 text-slate-800 rounded-tl-none border border-slate-200/60"
-                        }`}>
+                          }`}>
                           {msg.content}
                         </div>
                       </div>
