@@ -25,6 +25,11 @@ export default function GameClient({ game, user, initialMessages }) {
   const [newMessage, setNewMessage] = useState("");
   const [flyingEmojis, setFlyingEmojis] = useState([]);
   const [showChatPanel, setShowChatPanel] = useState(false);
+
+  // Popups/Toasts & Forfeit state
+  const [selectionsToast, setSelectionsToast] = useState(null);
+  const [turnToast, setTurnToast] = useState(null);
+  const [opponentForfeited, setOpponentForfeited] = useState(false);
   
   const chatEndRef = useRef(null);
 
@@ -39,6 +44,16 @@ export default function GameClient({ game, user, initialMessages }) {
   const opponentGuesses = isPlayer1 ? (gameState.player2Guesses || []) : (gameState.player1Guesses || []);
 
   const isMyTurn = gameState.status === "PLAYING" && gameState.turn === user.id;
+
+  const triggerHaptic = (pattern) => {
+    if (typeof window !== "undefined" && window.navigator && window.navigator.vibrate) {
+      try {
+        window.navigator.vibrate(pattern);
+      } catch (err) {
+        // Silently catch security blocks
+      }
+    }
+  };
 
   const scrollToBottom = () => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -102,13 +117,31 @@ export default function GameClient({ game, user, initialMessages }) {
       if (userId === user.id && event === "selection") {
         setHasLockedSelections(true);
       }
+      if (event === "forfeit") {
+        setOpponentForfeited(true);
+        triggerHaptic([150, 50, 150, 50, 250]);
+        triggerConfetti();
+      }
     });
 
     newSocket.on("guess-result", ({ game: updatedGame, guess }) => {
       setGameState(updatedGame);
-      if (guess.isWinner) {
-        if (guess.userId === user.id) {
+      if (guess.userId === user.id) {
+        if (guess.isWinner) {
+          triggerHaptic([150, 50, 150, 50, 250]);
           triggerConfetti();
+        } else if (guess.isHit) {
+          triggerHaptic([100, 50, 100]);
+        } else {
+          triggerHaptic(40);
+        }
+      } else {
+        if (guess.isWinner) {
+          triggerHaptic([300, 100, 300]);
+        } else if (guess.isHit) {
+          triggerHaptic([120, 40, 120]);
+        } else {
+          triggerHaptic(20);
         }
       }
     });
@@ -153,6 +186,46 @@ export default function GameClient({ game, user, initialMessages }) {
       setActiveGridTab(isMyTurn ? "attack" : "defense");
     }
   }, [gameState.status, isMyTurn]);
+
+  // Turn change popup transition and haptic trigger
+  useEffect(() => {
+    if (gameState.status !== "PLAYING") return;
+
+    setTurnToast(isMyTurn ? "YOUR TURN" : "ENEMY TURN");
+    if (isMyTurn) {
+      triggerHaptic([60, 40, 60]);
+    }
+
+    const timer = setTimeout(() => {
+      setTurnToast(null);
+    }, 1500);
+
+    return () => clearTimeout(timer);
+  }, [isMyTurn, gameState.status]);
+
+  // Shield selection count toast and haptic trigger
+  useEffect(() => {
+    if (gameState.status !== "SELECTING" || readyToSelect || hasLockedSelections) return;
+
+    const len = selectedIndices.length;
+    if (len === 0) return;
+
+    // Trigger minor click vibration
+    triggerHaptic(15);
+
+    const left = 5 - len;
+    setSelectionsToast(
+      left > 0 
+        ? `${len}/5 Shields Hidden (Hide ${left} More)` 
+        : "5/5 Shields Hidden (Ready to Lock!)"
+    );
+
+    const timer = setTimeout(() => {
+      setSelectionsToast(null);
+    }, 1200);
+
+    return () => clearTimeout(timer);
+  }, [selectedIndices, gameState.status, readyToSelect, hasLockedSelections]);
 
   // Sync victory confetti
   useEffect(() => {

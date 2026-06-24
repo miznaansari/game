@@ -71,7 +71,9 @@ export default function SignupPage() {
         throw new Error(data.error || "Google sign-in failed");
       }
 
-      router.push("/");
+      const searchParams = new URLSearchParams(window.location.search);
+      const redirectTo = searchParams.get("redirectTo") || "/";
+      router.push(redirectTo);
       router.refresh();
     } catch (err) {
       setError(err.message);

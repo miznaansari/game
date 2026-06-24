@@ -103,6 +103,11 @@ io.on("connection", (socket) => {
 
     const roomName = `game:${gameId}`;
     socket.join(roomName);
+    
+    // Store current game and user data directly on the socket
+    socket.gameId = gameId;
+    socket.userId = userId;
+    
     console.log(`Socket ${socket.id} (User: ${userId}) joined room ${roomName}`);
 
     // Send a message indicating user joined
@@ -296,6 +301,7 @@ io.on("connection", (socket) => {
   // Handle disconnect
   socket.on("disconnect", () => {
     const userId = socketToUser.get(socket.id);
+    const gameId = socket.gameId;
     console.log(`Socket disconnected: ${socket.id}`);
 
     if (userId) {
@@ -309,6 +315,43 @@ io.on("connection", (socket) => {
         }
       }
       socketToUser.delete(socket.id);
+    }
+
+    // Declaring default win on opponent disconnect after 8 seconds grace period
+    if (gameId && userId) {
+      setTimeout(async () => {
+        try {
+          const roomName = `game:${gameId}`;
+          const socketsInRoom = await io.in(roomName).fetchSockets();
+          const isUserStillInRoom = socketsInRoom.some(s => s.userId === userId);
+          
+          if (!isUserStillInRoom) {
+            const game = await prisma.game.findUnique({ where: { id: gameId } });
+            if (game && (game.status === "PLAYING" || game.status === "SELECTING")) {
+              const winnerId = game.player1Id === userId ? game.player2Id : game.player1Id;
+              
+              const updatedGame = await prisma.game.update({
+                where: { id: gameId },
+                data: {
+                  status: "FINISHED",
+                  winnerId: winnerId,
+                },
+              });
+              
+              // Broadcast update to trigger Victory screen on remaining player client
+              io.to(roomName).emit("game-updated", {
+                game: updatedGame,
+                event: "forfeit",
+                userId: winnerId,
+              });
+              
+              console.log(`User ${userId} left the game. Winner declared: ${winnerId}`);
+            }
+          }
+        } catch (err) {
+          console.error("Error in game disconnect cleanup:", err);
+        }
+      }, 8000);
     }
   });
 });

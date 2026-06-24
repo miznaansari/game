@@ -52,7 +52,8 @@ function LoginForm() {
         throw new Error(data.error || "Login failed");
       }
 
-      router.push("/");
+      const redirectTo = searchParams.get("redirectTo") || "/";
+      router.push(redirectTo);
       router.refresh();
     } catch (err) {
       setError(err.message);
@@ -86,7 +87,8 @@ function LoginForm() {
         throw new Error(data.error || "Google sign-in failed");
       }
 
-      router.push("/");
+      const redirectTo = searchParams.get("redirectTo") || "/";
+      router.push(redirectTo);
       router.refresh();
     } catch (err) {
       setError(err.message);

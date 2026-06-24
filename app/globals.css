@@ -218,6 +218,57 @@ body {
   color: rgba(148, 163, 184, 0.4) !important;
 }
 
+/* LIGHT THEME GAME UI STYLE RULES */
+.game-theme-light {
+  background-color: #f8fafc !important; /* Slate-50 */
+  color: #1e293b !important; /* Slate-800 */
+}
+
+/* Elegant Light Card */
+.light-card {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.03);
+}
+
+/* Light theme cells */
+.cell-btn-light {
+  background: #ffffff !important;
+  border: 1.5px solid #e2e8f0 !important;
+  color: #64748b !important;
+  font-weight: 800;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.cell-btn-light:hover:not(:disabled) {
+  background: rgba(79, 70, 229, 0.06) !important;
+  border-color: rgba(79, 70, 229, 0.4) !important;
+  color: #4f46e5 !important;
+  transform: scale(1.05);
+}
+
+.cell-selected-light {
+  background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%) !important;
+  border: 1.5px solid #818cf8 !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.35);
+  transform: scale(1.03);
+}
+
+.cell-hit-light {
+  background: linear-gradient(135deg, #ef4444 0%, #f43f5e 100%) !important;
+  border: 1.5px solid #fca5a5 !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 16px rgba(239, 68, 68, 0.4);
+  animation: pulse-glow-red-light 1.5s infinite alternate;
+}
+
+.cell-miss-light {
+  background: #e2e8f0 !important;
+  border: 1.5px solid #cbd5e1 !important;
+  color: #94a3b8 !important;
+}
+
 /* Animations */
 @keyframes pulse-glow-rose {
   from {
@@ -227,6 +278,68 @@ body {
   to {
     box-shadow: 0 0 20px rgba(244, 63, 94, 0.8), 0 0 30px rgba(244, 63, 94, 0.4);
     transform: scale(1.05);
+  }
+}
+
+@keyframes pulse-glow-red-light {
+  from {
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+    transform: scale(1);
+  }
+  to {
+    box-shadow: 0 6px 20px rgba(239, 68, 68, 0.6);
+    transform: scale(1.05);
+  }
+}
+
+/* Floating overlay popups */
+.float-banner-in {
+  animation: float-banner 1.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+.float-toast-in {
+  animation: float-toast 1.2s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+@keyframes float-banner {
+  0% {
+    transform: translate(-50%, -40%) scale(0.7);
+    opacity: 0;
+  }
+  20% {
+    transform: translate(-50%, -50%) scale(1.05);
+    opacity: 1;
+  }
+  30% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+  }
+  80% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -65%) scale(0.9);
+    opacity: 0;
+  }
+}
+
+@keyframes float-toast {
+  0% {
+    transform: translate(-50%, -35%) scale(0.85);
+    opacity: 0;
+  }
+  15% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+  }
+  80% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -65%) scale(0.95);
+    opacity: 0;
   }
 }
 

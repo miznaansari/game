@@ -6,12 +6,13 @@ import GameClient from "@/components/GameClient";
 export const dynamic = "force-dynamic";
 
 export default async function GamePage({ params }) {
-  const user = await requireUser();
   const { id } = await params;
-
+  
   if (!id) {
     redirect("/");
   }
+
+  const user = await requireUser(`/game/${id}`);
 
   const game = await prisma.game.findUnique({
     where: { id },

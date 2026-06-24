@@ -543,8 +543,8 @@ export default function DashboardClient({ user }) {
                               </button>
                             ) : (
                               <button 
-                                disabled
-                                className="bg-surface-container px-4 py-2 rounded-xl text-outline font-bold text-xs opacity-50 cursor-not-allowed border border-outline-variant/30"
+                                onClick={() => handleInviteToGame(friend.id)}
+                                className="bg-surface-container hover:bg-surface-container-high px-4 py-2 rounded-xl text-primary font-bold text-xs border border-outline-variant/30 active-scale cursor-pointer shadow-sm hover:shadow-md"
                               >
                                 Invite
                               </button>
