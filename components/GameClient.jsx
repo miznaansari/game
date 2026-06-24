@@ -12,7 +12,7 @@ export default function GameClient({ game, user, initialMessages }) {
   
   // Custom States
   const [opponentJoined, setOpponentJoined] = useState(false);
-  const [readyToSelect, setReadyToSelect] = useState(false);
+  const [readyToSelect, setReadyToSelect] = useState(true);
   const [activeGridTab, setActiveGridTab] = useState("attack"); // "attack" or "defense"
 
   // Selections
@@ -208,7 +208,7 @@ export default function GameClient({ game, user, initialMessages }) {
 
   // Shield selection count toast and haptic trigger
   useEffect(() => {
-    if (gameState.status !== "SELECTING" || readyToSelect || hasLockedSelections) return;
+    if (gameState.status !== "SELECTING" || !readyToSelect || hasLockedSelections) return;
 
     const len = selectedIndices.length;
     if (len === 0) return;
@@ -637,7 +637,9 @@ export default function GameClient({ game, user, initialMessages }) {
                 <div className="radar-spinner mb-2"></div>
                 <h3 className="font-display font-extrabold text-base text-slate-800">Selections Locked!</h3>
                 <p className="text-xs text-slate-500 font-semibold leading-relaxed max-w-[240px]">
-                  Calibrating radar. Waiting for opponent to hide their blocks...
+                  {opponentJoined 
+                    ? "Calibrating radar. Waiting for opponent to hide their blocks..." 
+                    : "Calibrating radar. Waiting for opponent to join..."}
                 </p>
               </div>
             )}
