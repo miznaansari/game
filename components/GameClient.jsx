@@ -34,6 +34,21 @@ export default function GameClient({ game, user, initialMessages }) {
   
   const chatEndRef = useRef(null);
 
+  const isPlayer1 = gameState.player1Id === user.id;
+  const myRole = isPlayer1 ? "player1" : "player2";
+  const opponent = isPlayer1 ? gameState.player2 : gameState.player1;
+
+  // Safe JSON parser utility
+  const parseJsonField = (field) => {
+    if (!field) return [];
+    if (Array.isArray(field)) return field;
+    try {
+      return JSON.parse(field);
+    } catch (e) {
+      return [];
+    }
+  };
+
   // Memory Match States
   const [flippedCards, setFlippedCards] = useState([]);
   const [revealedEmojis, setRevealedEmojis] = useState({});
@@ -42,34 +57,32 @@ export default function GameClient({ game, user, initialMessages }) {
   const myScore = isPlayer1 ? (gameState.player1Score || 0) : (gameState.player2Score || 0);
   const opponentScore = isPlayer1 ? (gameState.player2Score || 0) : (gameState.player1Score || 0);
 
+  const mySelections = parseJsonField(isPlayer1 ? gameState.player1Selections : gameState.player2Selections);
+  const opponentSelections = parseJsonField(isPlayer1 ? gameState.player2Selections : gameState.player1Selections);
+  
+  const myGuesses = parseJsonField(isPlayer1 ? gameState.player1Guesses : gameState.player2Guesses);
+  const opponentGuesses = parseJsonField(isPlayer1 ? gameState.player2Guesses : gameState.player1Guesses);
+
+  const matchedList = parseJsonField(gameState.memoryMatched);
+  const flippedList = parseJsonField(gameState.memoryFlipped);
+  const memoryGridList = parseJsonField(gameState.memoryGrid);
+
   // Sync memory grid on load or updates
   useEffect(() => {
-    if (gameState.mode === "MEMORY" && gameState.memoryGrid) {
+    if (gameState.mode === "MEMORY" && memoryGridList.length > 0) {
       const initialRevealed = {};
-      const matched = gameState.memoryMatched || [];
-      const flipped = gameState.memoryFlipped || [];
       
-      matched.forEach(idx => {
-        initialRevealed[idx] = gameState.memoryGrid[idx];
+      matchedList.forEach(idx => {
+        initialRevealed[idx] = memoryGridList[idx];
       });
-      flipped.forEach(idx => {
-        initialRevealed[idx] = gameState.memoryGrid[idx];
+      flippedList.forEach(idx => {
+        initialRevealed[idx] = memoryGridList[idx];
       });
       
       setRevealedEmojis(initialRevealed);
-      setFlippedCards(flipped);
+      setFlippedCards(flippedList);
     }
   }, [gameState.memoryMatched, gameState.memoryFlipped, gameState.memoryGrid, gameState.mode]);
-
-  const isPlayer1 = gameState.player1Id === user.id;
-  const myRole = isPlayer1 ? "player1" : "player2";
-  const opponent = isPlayer1 ? gameState.player2 : gameState.player1;
-  
-  const mySelections = isPlayer1 ? gameState.player1Selections : gameState.player2Selections;
-  const opponentSelections = isPlayer1 ? gameState.player2Selections : gameState.player1Selections;
-  
-  const myGuesses = isPlayer1 ? (gameState.player1Guesses || []) : (gameState.player2Guesses || []);
-  const opponentGuesses = isPlayer1 ? (gameState.player2Guesses || []) : (gameState.player1Guesses || []);
 
   const isMyTurn = gameState.status === "PLAYING" && gameState.turn === user.id;
 
@@ -741,7 +754,7 @@ export default function GameClient({ game, user, initialMessages }) {
               <div className="flex-grow flex items-center justify-center py-2">
                 <div className="grid grid-cols-6 gap-2 w-full max-w-[340px] aspect-[6/5] mx-auto">
                   {Array.from({ length: 30 }).map((_, index) => {
-                    const isMatched = (gameState.memoryMatched || []).includes(index);
+                    const isMatched = matchedList.includes(index);
                     const isFlipped = flippedCards.includes(index) || isMatched;
                     const emoji = revealedEmojis[index] || "";
                     
