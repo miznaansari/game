@@ -10,7 +10,7 @@ export async function POST(request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { receiverId } = await request.json();
+    const { receiverId, mode = "BATTLE" } = await request.json();
 
     if (!receiverId) {
       return NextResponse.json({ error: "Receiver ID is required" }, { status: 400 });
@@ -24,13 +24,33 @@ export async function POST(request) {
       return NextResponse.json({ error: "Opponent not found" }, { status: 404 });
     }
 
+    // Generate shuffled memory grid if MEMORY mode
+    let memoryGrid = null;
+    if (mode === "MEMORY") {
+      const emojis = ["🎮", "🎲", "👾", "🤖", "⚔️", "🛡️", "🔥", "💧", "⚡", "🌟", "🍀", "👑", "🍕", "🍔", "🎈"];
+      const doubled = [...emojis, ...emojis];
+      for (let i = doubled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [doubled[i], doubled[j]] = [doubled[j], doubled[i]];
+      }
+      memoryGrid = doubled;
+    }
+
     // Create game record
     const game = await prisma.game.create({
       data: {
         player1Id: user.id,
         player2Id: receiverId,
-        status: "SELECTING",
+        status: mode === "MEMORY" ? "PLAYING" : "SELECTING",
+        mode,
         turn: user.id, // Player 1 starts
+        ...(mode === "MEMORY" ? {
+          memoryGrid,
+          memoryMatched: [],
+          memoryFlipped: [],
+          player1Score: 0,
+          player2Score: 0,
+        } : {}),
       },
     });
 

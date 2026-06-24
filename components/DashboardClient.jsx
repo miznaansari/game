@@ -26,6 +26,7 @@ export default function DashboardClient({ user }) {
   const [activeInvite, setActiveInvite] = useState(null);
   const [socket, setSocket] = useState(null);
   const [actionLoadingId, setActionLoadingId] = useState(null);
+  const [inviteTargetId, setInviteTargetId] = useState(null);
 
   // Load friends and games lists
   const fetchData = async () => {
@@ -68,8 +69,8 @@ export default function DashboardClient({ user }) {
       setStatuses((prev) => ({ ...prev, [userId]: status }));
     });
 
-    newSocket.on("invite-received", ({ senderId, senderName, gameId }) => {
-      setActiveInvite({ senderId, senderName, gameId });
+    newSocket.on("invite-received", ({ senderId, senderName, gameId, mode }) => {
+      setActiveInvite({ senderId, senderName, gameId, mode: mode || "BATTLE" });
     });
 
     return () => {
@@ -131,13 +132,14 @@ export default function DashboardClient({ user }) {
     }
   };
 
-  const handleInviteToGame = async (receiverId) => {
+  const handleInviteToGame = async (receiverId, mode = "BATTLE") => {
     setActionLoadingId(receiverId);
+    setInviteTargetId(null);
     try {
       const res = await fetch("/api/games", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ receiverId }),
+        body: JSON.stringify({ receiverId, mode }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to send invite");
@@ -149,6 +151,7 @@ export default function DashboardClient({ user }) {
           senderName: user.name || user.email,
           receiverId,
           gameId: data.gameId,
+          mode,
         });
       }
 
@@ -207,7 +210,7 @@ export default function DashboardClient({ user }) {
             <div>
               <h4 className="font-display font-extrabold text-sm text-on-background">1v1 Challenge!</h4>
               <p className="text-xs text-on-surface-variant mt-0.5">
-                <span className="font-bold text-primary">{activeInvite.senderName}</span> wants to battle.
+                <span className="font-bold text-primary">{activeInvite.senderName}</span> wants to play <span className="font-extrabold text-secondary">{activeInvite.mode === "MEMORY" ? "Emoji Memory Match 🧩" : "Grid Battleship 🎯"}</span>.
               </p>
             </div>
           </div>
@@ -228,6 +231,55 @@ export default function DashboardClient({ user }) {
             >
               Accept Battle
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Select Game Mode Modal */}
+      {inviteTargetId && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl border border-slate-200 p-6 max-w-sm w-full shadow-2xl flex flex-col gap-4">
+            <div className="flex justify-between items-center">
+              <h3 className="font-display font-black text-lg text-slate-800">Select Game Mode</h3>
+              <button 
+                onClick={() => setInviteTargetId(null)}
+                className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 hover:bg-slate-200 active-scale cursor-pointer"
+              >
+                <span className="material-symbols-outlined text-[18px]">close</span>
+              </button>
+            </div>
+            
+            <p className="text-xs text-slate-500 font-semibold">Choose which game mode to challenge your friend to:</p>
+
+            <div className="flex flex-col gap-3">
+              {/* Option 1: Battleship */}
+              <button
+                onClick={() => handleInviteToGame(inviteTargetId, "BATTLE")}
+                className="flex items-center gap-3 p-4 rounded-2xl border-2 border-slate-100 hover:border-indigo-500/40 bg-slate-50/50 hover:bg-indigo-50/40 text-left transition active-scale cursor-pointer w-full"
+              >
+                <div className="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center flex-shrink-0">
+                  <span className="material-symbols-outlined text-[24px]">target</span>
+                </div>
+                <div className="flex-1">
+                  <h4 className="font-display font-extrabold text-sm text-slate-800">Grid Battleship</h4>
+                  <p className="text-[10px] text-slate-500 mt-0.5">Hide ships and strike enemy coordinates.</p>
+                </div>
+              </button>
+
+              {/* Option 2: Memory Match */}
+              <button
+                onClick={() => handleInviteToGame(inviteTargetId, "MEMORY")}
+                className="flex items-center gap-3 p-4 rounded-2xl border-2 border-slate-100 hover:border-fuchsia-500/40 bg-slate-50/50 hover:bg-fuchsia-50/40 text-left transition active-scale cursor-pointer w-full"
+              >
+                <div className="w-10 h-10 rounded-xl bg-fuchsia-100 text-fuchsia-600 flex items-center justify-center flex-shrink-0">
+                  <span className="material-symbols-outlined text-[24px]">extension</span>
+                </div>
+                <div className="flex-1">
+                  <h4 className="font-display font-extrabold text-sm text-slate-800">Emoji Memory Match</h4>
+                  <p className="text-[10px] text-slate-500 mt-0.5">Flip and match identical emoji pairs.</p>
+                </div>
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -569,7 +621,7 @@ export default function DashboardClient({ user }) {
                             {isOnline ? (
                               <button 
                                 disabled={actionLoadingId === friend.id}
-                                onClick={() => handleInviteToGame(friend.id)}
+                                onClick={() => setInviteTargetId(friend.id)}
                                 className="glossy-secondary px-4 py-2 rounded-xl text-white font-bold text-xs active-scale cursor-pointer shadow-sm hover:shadow-md disabled:opacity-50 min-w-[72px] flex items-center justify-center"
                               >
                                 {actionLoadingId === friend.id ? <span className="btn-loader" /> : "Invite"}
@@ -577,7 +629,7 @@ export default function DashboardClient({ user }) {
                             ) : (
                               <button 
                                 disabled={actionLoadingId === friend.id}
-                                onClick={() => handleInviteToGame(friend.id)}
+                                onClick={() => setInviteTargetId(friend.id)}
                                 className="bg-surface-container hover:bg-surface-container-high px-4 py-2 rounded-xl text-primary font-bold text-xs border border-outline-variant/30 active-scale cursor-pointer shadow-sm hover:shadow-md disabled:opacity-50 min-w-[72px] flex items-center justify-center"
                               >
                                 {actionLoadingId === friend.id ? <span className="btn-loader" /> : "Invite"}
