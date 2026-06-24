@@ -19,6 +19,7 @@ export default function GameClient({ game, user, initialMessages }) {
   const [selectedIndices, setSelectedIndices] = useState([]);
   const [hasLockedSelections, setHasLockedSelections] = useState(false);
   const [timeLeft, setTimeLeft] = useState(20);
+  const [firingIndex, setFiringIndex] = useState(null);
   
   // Chat and emoji
   const [messages, setMessages] = useState(initialMessages || []);
@@ -114,6 +115,7 @@ export default function GameClient({ game, user, initialMessages }) {
 
     newSocket.on("game-updated", ({ game: updatedGame, event, userId }) => {
       setGameState(updatedGame);
+      setFiringIndex(null);
       if (userId === user.id && event === "selection") {
         setHasLockedSelections(true);
       }
@@ -126,6 +128,7 @@ export default function GameClient({ game, user, initialMessages }) {
 
     newSocket.on("guess-result", ({ game: updatedGame, guess }) => {
       setGameState(updatedGame);
+      setFiringIndex(null);
       if (guess.userId === user.id) {
         if (guess.isWinner) {
           triggerHaptic([150, 50, 150, 50, 250]);
@@ -283,6 +286,9 @@ export default function GameClient({ game, user, initialMessages }) {
   const makeGuess = (cellIndex) => {
     if (!isMyTurn || gameState.status !== "PLAYING") return;
     if (myGuesses.includes(cellIndex)) return;
+    if (firingIndex !== null) return; // Prevent double trigger
+
+    setFiringIndex(cellIndex);
 
     if (socket) {
       socket.emit("make-guess", {
@@ -369,8 +375,13 @@ export default function GameClient({ game, user, initialMessages }) {
           if (isOpponentBoard) {
             const hasGuessed = myGuesses.includes(index);
             const isHit = hasGuessed && (opponentSelections || []).includes(index);
+            const isFiring = firingIndex === index;
 
-            if (hasGuessed) {
+            if (isFiring) {
+              isDisabled = true;
+              cellClass = "cell-btn-light cell-loading-sonar bg-indigo-50 border-indigo-500 font-extrabold";
+              cellText = "";
+            } else if (hasGuessed) {
               isDisabled = true;
               if (isHit) {
                 cellClass = "cell-hit-light font-black";
@@ -380,8 +391,8 @@ export default function GameClient({ game, user, initialMessages }) {
                 cellText = "💧";
               }
             } else {
-              isDisabled = !isMyTurn;
-              if (isMyTurn) {
+              isDisabled = !isMyTurn || firingIndex !== null;
+              if (isMyTurn && firingIndex === null) {
                 cellClass = "cell-btn-light text-indigo-600 border-indigo-200 hover:border-indigo-400 hover:text-indigo-700 font-extrabold hover:scale-105 active:scale-95 cursor-pointer shadow-sm";
               } else {
                 cellClass = "cell-btn-light opacity-50 cursor-not-allowed bg-slate-50";
@@ -622,17 +633,12 @@ export default function GameClient({ game, user, initialMessages }) {
                 </button>
               </div>
             ) : (
-              <div className="light-card rounded-2xl p-6 text-center max-w-sm w-full space-y-4">
-                <div className="w-14 h-14 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center mx-auto shadow-inner border border-indigo-100/50">
-                  <span className="material-symbols-outlined text-[32px] animate-pulse">lock</span>
-                </div>
+              <div className="light-card rounded-2xl p-8 text-center max-w-sm w-full space-y-5 flex flex-col items-center">
+                <div className="radar-spinner mb-2"></div>
                 <h3 className="font-display font-extrabold text-base text-slate-800">Selections Locked!</h3>
-                <p className="text-xs text-slate-500 font-semibold leading-relaxed">
-                  Waiting for opponent to hide their blocks. The battle begins shortly!
+                <p className="text-xs text-slate-500 font-semibold leading-relaxed max-w-[240px]">
+                  Calibrating radar. Waiting for opponent to hide their blocks...
                 </p>
-                <div className="pt-2">
-                  <span className="material-symbols-outlined text-indigo-500 text-[28px] animate-spin">sync</span>
-                </div>
               </div>
             )}
           </div>

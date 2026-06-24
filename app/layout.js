@@ -1,11 +1,15 @@
 import "./globals.css";
+import { getSessionUser } from "@/lib/auth";
+import OneSignalInit from "@/components/OneSignalInit";
 
 export const metadata = {
   title: "1v1 Battle Grid - Real-time Grid Battleship Arena",
   description: "Challenge your friends to a real-time, 8x8 battleship-like grid prediction game with instant chat and emojis.",
 };
 
-export default function RootLayout({ children }) {
+export default async function RootLayout({ children }) {
+  const user = await getSessionUser();
+
   return (
     <html lang="en" className="light">
       <head>
@@ -15,6 +19,7 @@ export default function RootLayout({ children }) {
         <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
       </head>
       <body className="min-h-screen flex flex-col bg-background text-on-background gaming-pattern">
+        <OneSignalInit userId={user?.id || null} />
         {children}
       </body>
     </html>

@@ -350,4 +350,105 @@ body {
   }
 }
 
+/* Radar/Sonar scanning loader */
+@keyframes radar-scan {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.radar-spinner {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  border: 2px solid rgba(79, 70, 229, 0.15);
+  position: relative;
+  overflow: hidden;
+}
+.radar-spinner::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: conic-gradient(from 0deg, transparent 50%, rgba(79, 70, 229, 0.3) 100%);
+  border-radius: 50%;
+  animation: radar-scan 1.8s linear infinite;
+}
+
+/* Firing cell target loader */
+@keyframes sonar-ping-cell {
+  0% {
+    transform: scale(0.6);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1.3);
+    opacity: 0;
+  }
+}
+
+.cell-loading-sonar {
+  position: relative;
+}
+.cell-loading-sonar::before {
+  content: '';
+  position: absolute;
+  width: 70%;
+  height: 70%;
+  border-radius: 50%;
+  border: 2px solid #4f46e5;
+  animation: sonar-ping-cell 1s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+.cell-loading-sonar::after {
+  content: '🎯';
+  font-size: 14px;
+}
+
+/* Mini loader for button loading state */
+.btn-loader {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid transparent;
+  border-top-color: currentColor;
+  border-radius: 50%;
+  animation: radar-scan 0.8s linear infinite;
+}
+
+/* Glassmorphic global overlay loader */
+.glass-overlay {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(12px);
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+/* Skeleton grid styles */
+@keyframes skeleton-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.skeleton-box {
+  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.5s infinite;
+}
+
+
 

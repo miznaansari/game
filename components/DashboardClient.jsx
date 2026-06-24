@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { io } from "socket.io-client";
-import OneSignalInit from "./OneSignalInit";
 
 export default function DashboardClient({ user }) {
   const router = useRouter();
@@ -25,6 +24,7 @@ export default function DashboardClient({ user }) {
   const [statuses, setStatuses] = useState({});
   const [activeInvite, setActiveInvite] = useState(null);
   const [socket, setSocket] = useState(null);
+  const [actionLoadingId, setActionLoadingId] = useState(null);
 
   // Load friends and games lists
   const fetchData = async () => {
@@ -113,6 +113,7 @@ export default function DashboardClient({ user }) {
   };
 
   const handleFriendResponse = async (friendshipId, action) => {
+    setActionLoadingId(friendshipId);
     try {
       const res = await fetch("/api/friends/respond", {
         method: "POST",
@@ -120,14 +121,17 @@ export default function DashboardClient({ user }) {
         body: JSON.stringify({ friendshipId, action }),
       });
       if (res.ok) {
-        fetchData();
+        await fetchData();
       }
     } catch (err) {
       console.error("Error responding to friend request:", err);
+    } finally {
+      setActionLoadingId(null);
     }
   };
 
   const handleInviteToGame = async (receiverId) => {
+    setActionLoadingId(receiverId);
     try {
       const res = await fetch("/api/games", {
         method: "POST",
@@ -150,10 +154,12 @@ export default function DashboardClient({ user }) {
       router.push(`/game/${data.gameId}`);
     } catch (err) {
       alert(err.message);
+      setActionLoadingId(null);
     }
   };
 
   const handleLogout = async () => {
+    setActionLoadingId("logout");
     try {
       const res = await fetch("/api/auth/logout", { method: "POST" });
       if (res.ok) {
@@ -162,6 +168,7 @@ export default function DashboardClient({ user }) {
       }
     } catch (err) {
       console.error("Logout error:", err);
+      setActionLoadingId(null);
     }
   };
 
@@ -182,7 +189,12 @@ export default function DashboardClient({ user }) {
 
   return (
     <div className="min-h-screen bg-background text-on-background font-body pb-24 gaming-pattern flex flex-col">
-      <OneSignalInit userId={user.id} />
+      {actionLoadingId === "logout" && (
+        <div className="glass-overlay">
+          <div className="radar-spinner"></div>
+          <p className="font-display font-extrabold text-sm text-primary animate-pulse">Logging out safely...</p>
+        </div>
+      )}
 
       {/* Live invitation overlay banner */}
       {activeInvite && (
@@ -239,9 +251,20 @@ export default function DashboardClient({ user }) {
       {/* Main Canvas Container */}
       <main className="flex-grow px-5 pt-5 max-w-2xl mx-auto w-full">
         {loading ? (
-          <div className="flex flex-col items-center justify-center min-h-[50vh] gap-3">
-            <span className="material-symbols-outlined text-primary text-[48px] animate-spin">sync</span>
-            <p className="font-bold text-sm text-outline animate-pulse">Loading Hub...</p>
+          <div className="space-y-6 animate-pulse">
+            <section className="space-y-2">
+              <div className="h-4 w-24 skeleton-box rounded"></div>
+              <div className="h-8 w-48 skeleton-box rounded"></div>
+            </section>
+            
+            <div className="grid grid-cols-1 gap-4">
+              <div className="h-60 rounded-2xl skeleton-box opacity-70"></div>
+              <div className="h-60 rounded-2xl skeleton-box opacity-70"></div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="h-44 rounded-2xl skeleton-box opacity-70"></div>
+                <div className="h-44 rounded-2xl skeleton-box opacity-70"></div>
+              </div>
+            </div>
           </div>
         ) : (
           <>
@@ -470,14 +493,20 @@ export default function DashboardClient({ user }) {
                         </div>
                         <div className="flex gap-1.5">
                           <button 
+                            disabled={actionLoadingId === req.friendshipId}
                             onClick={() => handleFriendResponse(req.friendshipId, "ACCEPT")}
-                            className="w-10 h-10 rounded-xl bg-primary text-white flex items-center justify-center font-bold active-scale shadow-sm cursor-pointer"
+                            className="w-10 h-10 rounded-xl bg-primary text-white flex items-center justify-center font-bold active-scale shadow-sm cursor-pointer disabled:opacity-50"
                           >
-                            <span className="material-symbols-outlined text-[20px]">check</span>
+                            {actionLoadingId === req.friendshipId ? (
+                              <span className="btn-loader" />
+                            ) : (
+                              <span className="material-symbols-outlined text-[20px]">check</span>
+                            )}
                           </button>
                           <button 
+                            disabled={actionLoadingId === req.friendshipId}
                             onClick={() => handleFriendResponse(req.friendshipId, "DECLINE")}
-                            className="w-10 h-10 rounded-xl bg-surface-container text-on-surface-variant border border-outline-variant/30 flex items-center justify-center font-bold active-scale cursor-pointer"
+                            className="w-10 h-10 rounded-xl bg-surface-container text-on-surface-variant border border-outline-variant/30 flex items-center justify-center font-bold active-scale cursor-pointer disabled:opacity-50"
                           >
                             <span className="material-symbols-outlined text-[20px]">close</span>
                           </button>
@@ -536,17 +565,19 @@ export default function DashboardClient({ user }) {
 
                             {isOnline ? (
                               <button 
+                                disabled={actionLoadingId === friend.id}
                                 onClick={() => handleInviteToGame(friend.id)}
-                                className="glossy-secondary px-4 py-2 rounded-xl text-white font-bold text-xs active-scale cursor-pointer shadow-sm hover:shadow-md"
+                                className="glossy-secondary px-4 py-2 rounded-xl text-white font-bold text-xs active-scale cursor-pointer shadow-sm hover:shadow-md disabled:opacity-50 min-w-[72px] flex items-center justify-center"
                               >
-                                Invite
+                                {actionLoadingId === friend.id ? <span className="btn-loader" /> : "Invite"}
                               </button>
                             ) : (
                               <button 
+                                disabled={actionLoadingId === friend.id}
                                 onClick={() => handleInviteToGame(friend.id)}
-                                className="bg-surface-container hover:bg-surface-container-high px-4 py-2 rounded-xl text-primary font-bold text-xs border border-outline-variant/30 active-scale cursor-pointer shadow-sm hover:shadow-md"
+                                className="bg-surface-container hover:bg-surface-container-high px-4 py-2 rounded-xl text-primary font-bold text-xs border border-outline-variant/30 active-scale cursor-pointer shadow-sm hover:shadow-md disabled:opacity-50 min-w-[72px] flex items-center justify-center"
                               >
-                                Invite
+                                {actionLoadingId === friend.id ? <span className="btn-loader" /> : "Invite"}
                               </button>
                             )}
                           </div>

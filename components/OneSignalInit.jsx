@@ -5,14 +5,20 @@ import Script from "next/script";
 
 export default function OneSignalInit({ userId }) {
   useEffect(() => {
-    if (!userId) return;
-
     window.OneSignalDeferred = window.OneSignalDeferred || [];
     window.OneSignalDeferred.push(async function (OneSignal) {
       await OneSignal.init({
         appId: process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID || "89ccfa0f-7840-4f33-9284-e9d0e44865a9",
         allowLocalhostAsSecureOrigin: true, // helps with testing on localhost
       });
+
+      if (userId) {
+        console.log("[ONESIGNAL] Logging in external user ID:", userId);
+        await OneSignal.login(userId);
+      } else {
+        console.log("[ONESIGNAL] No user, logging out of subscription");
+        await OneSignal.logout();
+      }
 
       const registerPlayerId = async (id) => {
         if (!id) return;
@@ -32,13 +38,15 @@ export default function OneSignalInit({ userId }) {
       OneSignal.User.PushSubscription.addEventListener("change", async (event) => {
         if (event.current.token) {
           const playerId = OneSignal.User.PushSubscription.id;
-          await registerPlayerId(playerId);
+          if (userId) {
+            await registerPlayerId(playerId);
+          }
         }
       });
 
       // Check if already subscribed
       const currentId = OneSignal.User.PushSubscription.id;
-      if (currentId) {
+      if (currentId && userId) {
         await registerPlayerId(currentId);
       }
     });
