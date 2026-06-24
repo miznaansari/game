@@ -190,6 +190,7 @@ export default function GameClient({ game, user, initialMessages }) {
     });
 
     newSocket.on("memory-card-flipped", ({ userId, cellIndex, emoji, firstCard }) => {
+      console.log("CLIENT: memory-card-flipped received", { userId, cellIndex, emoji, firstCard });
       triggerHaptic(20);
       setRevealedEmojis(prev => ({ ...prev, [cellIndex]: emoji }));
       if (firstCard) {
@@ -201,6 +202,7 @@ export default function GameClient({ game, user, initialMessages }) {
     });
 
     newSocket.on("memory-match-result", ({ game, match, flippedIndices, scores, nextTurn, isFinished }) => {
+      console.log("CLIENT: memory-match-result received", { match, flippedIndices, scores, nextTurn, isFinished });
       setGameState(game);
       if (match) {
         triggerHaptic([100, 50, 100]);
@@ -780,6 +782,7 @@ export default function GameClient({ game, user, initialMessages }) {
                         key={index}
                         disabled={isMatched || isFlipped || isProcessingFlip}
                         onClick={() => {
+                          console.log("Memory Card Clicked:", { index, isMatched, isFlipped, isMyTurn, isProcessingFlip, status: gameState.status, turn: gameState.turn, userId: user.id });
                           if (isMyTurn && !isProcessingFlip) {
                             socket.emit("flip-memory-card", {
                               gameId: gameState.id,

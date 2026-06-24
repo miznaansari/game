@@ -295,9 +295,18 @@ export default function DashboardClient({ user }) {
           </div>
           <h1 className="font-display text-2xl font-extrabold text-primary">GamerHub</h1>
         </div>
-        <div className="bg-surface-container-high px-3 py-1.5 rounded-full flex items-center gap-1 active-scale cursor-pointer" onClick={() => setActiveTab("profile")}>
-          <span className="material-symbols-outlined text-tertiary text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>diamond</span>
-          <span className="font-display font-extrabold text-xs text-on-surface">1,250 Gems</span>
+        <div className="flex items-center gap-2">
+          <div className="bg-surface-container-high px-3 py-1.5 rounded-full flex items-center gap-1 active-scale cursor-pointer" onClick={() => setActiveTab("profile")}>
+            <span className="material-symbols-outlined text-tertiary text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>diamond</span>
+            <span className="font-display font-extrabold text-xs text-on-surface">1,250 Gems</span>
+          </div>
+          <button
+            onClick={handleLogout}
+            title="Logout"
+            className="w-9 h-9 rounded-full bg-error/10 text-error flex items-center justify-center active-scale transition-transform cursor-pointer hover:bg-error/20"
+          >
+            <span className="material-symbols-outlined text-[18px]">logout</span>
+          </button>
         </div>
       </header>
 

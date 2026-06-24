@@ -1,13 +1,13 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAdmin } from "@/lib/auth";
+import { getSessionUser } from "@/lib/auth";
 import { sendPushNotification } from "@/lib/push";
 
 // Fetch sent campaigns list
 export async function GET() {
   try {
-    const admin = await requireAdmin(); // Authenticate admin
-    if (!admin) {
+    const admin = await getSessionUser(); // Authenticate admin
+    if (!admin || admin.role !== "ADMIN") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -25,8 +25,8 @@ export async function GET() {
 // Send a push campaign to all players
 export async function POST(request) {
   try {
-    const admin = await requireAdmin(); // Authenticate admin
-    if (!admin) {
+    const admin = await getSessionUser(); // Authenticate admin
+    if (!admin || admin.role !== "ADMIN") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
