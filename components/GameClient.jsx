@@ -26,6 +26,16 @@ export default function GameClient({ game, user, initialMessages }) {
   const [newMessage, setNewMessage] = useState("");
   const [flyingEmojis, setFlyingEmojis] = useState([]);
   const [showChatPanel, setShowChatPanel] = useState(false);
+  const [chatNotification, setChatNotification] = useState(null);
+  const showChatPanelRef = useRef(showChatPanel);
+
+  useEffect(() => {
+    showChatPanelRef.current = showChatPanel;
+    if (showChatPanel) {
+      setChatNotification(null);
+      if (window.chatNotificationTimeout) clearTimeout(window.chatNotificationTimeout);
+    }
+  }, [showChatPanel]);
 
   // Popups/Toasts & Forfeit state
   const [selectionsToast, setSelectionsToast] = useState(null);
@@ -264,11 +274,23 @@ export default function GameClient({ game, user, initialMessages }) {
 
     newSocket.on("chat-received", (message) => {
       setMessages((prev) => [...prev, message]);
+      
+      const isMe = message.senderId === user.id;
+      if (!isMe && !showChatPanelRef.current) {
+        const senderName = message.sender?.name || message.sender?.email?.split("@")[0] || "Opponent";
+        setChatNotification({ senderName, content: message.content });
+        
+        if (window.chatNotificationTimeout) clearTimeout(window.chatNotificationTimeout);
+        window.chatNotificationTimeout = setTimeout(() => {
+          setChatNotification(null);
+        }, 5000);
+      }
     });
 
     return () => {
       newSocket.disconnect();
       if (window.warningTimeout) clearTimeout(window.warningTimeout);
+      if (window.chatNotificationTimeout) clearTimeout(window.chatNotificationTimeout);
     };
   }, [gameState.id, user.id]);
 
@@ -557,18 +579,49 @@ export default function GameClient({ game, user, initialMessages }) {
       {/* Turn Change Overlay Banner */}
       {turnToast && (
         <div key={turnToast} className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 pointer-events-none">
-          <div className={`float-banner-in px-8 py-4 rounded-2xl shadow-xl backdrop-blur-md flex flex-col items-center border font-display font-extrabold ${turnToast === "YOUR TURN"
-              ? "bg-emerald-500/95 border-emerald-400 text-white shadow-emerald-500/20"
-              : "bg-amber-500/95 border-amber-400 text-white shadow-amber-500/20"
-            }`}>
-            <span className="material-symbols-outlined text-[36px] mb-1 animate-bounce">
-              {turnToast === "YOUR TURN" ? "sports_esports" : "hourglass_empty"}
+          <div className={`float-banner-in px-8 py-5 rounded-3xl shadow-2xl backdrop-blur-md flex flex-col items-center border font-display font-extrabold ${
+            turnToast === "YOUR TURN"
+              ? "bg-gradient-to-r from-emerald-500/90 to-teal-500/90 border-emerald-400/40 text-white shadow-emerald-500/30 scale-105"
+              : "bg-gradient-to-r from-rose-500/90 to-orange-500/90 border-rose-400/40 text-white shadow-rose-500/30 scale-105"
+          }`}>
+            <span className="material-symbols-outlined text-[44px] mb-2 animate-bounce">
+              {turnToast === "YOUR TURN"
+                ? (gameState.mode === "MEMORY" ? "sports_esports" : "military_tech")
+                : "hourglass_empty"}
             </span>
-            <span className="text-xl tracking-wider uppercase font-black">
-              {turnToast === "YOUR TURN" ? "Your Turn! ⚔️" : "Enemy Turn! ⏳"}
+            <span className="text-xl tracking-wider uppercase font-black text-center">
+              {turnToast === "YOUR TURN"
+                ? (gameState.mode === "MEMORY" ? "Your Turn! 🎮" : "Your Turn! ⚔️")
+                : (gameState.mode === "MEMORY" ? "Enemy Turn! 👾" : "Enemy Turn! ⏳")}
             </span>
           </div>
         </div>
+      )}
+
+      {/* Clickable Chat Notification Toast Overlay */}
+      {chatNotification && (
+        <button
+          onClick={() => {
+            setShowChatPanel(true);
+            setChatNotification(null);
+          }}
+          className="fixed top-20 left-1/2 -translate-x-1/2 z-40 w-[92%] max-w-sm bg-slate-900/95 hover:bg-slate-950 border border-slate-700/60 rounded-2xl shadow-xl p-3.5 flex items-start gap-3 backdrop-blur-md text-left transition active:scale-95 cursor-pointer float-toast-in animate-pulse-subtle pointer-events-auto"
+        >
+          <div className="w-9 h-9 rounded-full bg-indigo-600/30 flex items-center justify-center text-indigo-400 border border-indigo-500/20 shrink-0">
+            <span className="material-symbols-outlined text-[20px]">chat_bubble</span>
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[10px] font-bold text-indigo-300 uppercase tracking-wider truncate">
+                {chatNotification.senderName}
+              </span>
+              <span className="text-[9px] font-semibold text-slate-400">Click to reply</span>
+            </div>
+            <p className="text-xs text-slate-100 font-medium truncate mt-0.5">
+              {chatNotification.content}
+            </p>
+          </div>
+        </button>
       )}
 
       {/* Header */}
