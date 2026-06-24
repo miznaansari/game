@@ -695,7 +695,7 @@ export default function DashboardClient({ user }) {
                               {isWinner ? "Victory" : "Defeat"}
                             </span>
                             <h4 className="font-display font-extrabold text-sm text-on-surface">
-                              vs. {opponent.name || opponent.email}
+                              vs. {opponent.name || opponent.email} <span className="text-[10px] text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-full font-bold ml-1">{game.mode === "MEMORY" ? "🧩 Memory" : "🎯 Battle"}</span>
                             </h4>
                             <p className="text-[10px] text-outline font-semibold">
                               Played on {new Date(game.updatedAt).toLocaleDateString()}
@@ -762,7 +762,10 @@ export default function DashboardClient({ user }) {
                             className="p-3.5 glossy-surface rounded-xl flex items-center justify-between border border-outline-variant/30 hover:border-primary/30 transition card-shadow"
                           >
                             <div>
-                              <p className="font-bold text-sm text-on-surface">vs {opponent.name || opponent.email}</p>
+                              <p className="font-bold text-sm text-on-surface flex items-center gap-1.5 flex-wrap">
+                                <span>vs {opponent.name || opponent.email}</span>
+                                <span className="text-[9px] text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-full font-bold">{game.mode === "MEMORY" ? "🧩 Memory" : "🎯 Battle"}</span>
+                              </p>
                               <p className="text-[10px] font-bold text-primary mt-0.5 uppercase tracking-wider">
                                 {isTurn ? "👉 Your Turn" : "⏳ Opponent's Turn"}
                               </p>
