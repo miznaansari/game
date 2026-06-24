@@ -813,6 +813,17 @@ export default function GameClient({ game, user, initialMessages }) {
                             return;
                           }
                           if (!isProcessingFlip) {
+                            // Optimistically flip the card on click immediately
+                            const emoji = memoryGridList[index];
+                            setRevealedEmojis(prev => ({ ...prev, [index]: emoji }));
+                            setFlippedCards(prev => {
+                              const next = [...prev, index];
+                              if (next.length === 2) {
+                                setIsProcessingFlip(true); // Disable input immediately on 2nd card selection
+                              }
+                              return next;
+                            });
+
                             socket.emit("flip-memory-card", {
                               gameId: gameState.id,
                               userId: user.id,
