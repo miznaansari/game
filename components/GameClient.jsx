@@ -44,6 +44,7 @@ export default function GameClient({ game, user, initialMessages }) {
   const [opponentForfeited, setOpponentForfeited] = useState(false);
   const [opponentDisconnected, setOpponentDisconnected] = useState(false);
   const [reconnectedToast, setReconnectedToast] = useState(false);
+  const [isNudging, setIsNudging] = useState(false);
 
   const chatEndRef = useRef(null);
 
@@ -377,6 +378,34 @@ export default function GameClient({ game, user, initialMessages }) {
     };
   }, [gameState.status, router]);
 
+  const sendNudgeNotification = async () => {
+    if (isNudging) return;
+    setIsNudging(true);
+    try {
+      const res = await fetch("/api/games/nudge", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ gameId: gameState.id }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setWarningToast("Nudge push notification sent!");
+        setTimeout(() => setWarningToast(null), 3000);
+      } else {
+        setWarningToast(data.message || "Failed to nudge opponent.");
+        setTimeout(() => setWarningToast(null), 3000);
+      }
+    } catch (err) {
+      console.error("Failed to send nudge:", err);
+      setWarningToast("Error sending nudge.");
+      setTimeout(() => setWarningToast(null), 3000);
+    } finally {
+      setIsNudging(false);
+    }
+  };
+
   // Shield selection count toast and haptic trigger
   useEffect(() => {
     if (gameState.status !== "SELECTING" || !readyToSelect || hasLockedSelections) return;
@@ -621,12 +650,30 @@ export default function GameClient({ game, user, initialMessages }) {
         
         {/* Opponent Disconnection Warning */}
         {opponentDisconnected && (
-          <div className="float-toast-in w-full max-w-full bg-slate-900 border border-slate-800 text-white p-3 rounded-2xl shadow-lg flex items-center gap-3 backdrop-blur-md animate-pulse overflow-hidden">
-            <span className="material-symbols-outlined text-[20px] text-rose-500 shrink-0">wifi_off</span>
-            <div className="flex-1 min-w-0">
-              <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Connection Lost</p>
-              <p className="text-xs font-semibold text-slate-200 mt-0.5 truncate">Opponent disconnected...</p>
+          <div className="float-toast-in pointer-events-auto w-full max-w-full bg-slate-900 border border-slate-800 text-white p-3 rounded-2xl shadow-lg flex flex-col gap-2.5 backdrop-blur-md overflow-hidden">
+            <div className="flex items-center gap-3">
+              <span className="material-symbols-outlined text-[20px] text-rose-500 shrink-0 animate-pulse">wifi_off</span>
+              <div className="flex-1 min-w-0">
+                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Connection Lost</p>
+                <p className="text-xs font-semibold text-slate-200 mt-0.5 truncate">Opponent disconnected...</p>
+              </div>
             </div>
+            <button
+              onClick={sendNudgeNotification}
+              disabled={isNudging}
+              className="w-full py-1.5 px-3 bg-indigo-600 hover:bg-indigo-700 active:scale-95 disabled:opacity-50 disabled:scale-100 text-white font-bold text-[10px] uppercase tracking-wider rounded-xl transition cursor-pointer flex items-center justify-center gap-1 shadow-md shadow-indigo-600/20"
+            >
+              {isNudging ? (
+                <>
+                  <span className="btn-loader mr-1" /> Sending...
+                </>
+              ) : (
+                <>
+                  <span className="material-symbols-outlined text-[12px]">notifications_active</span>
+                  Nudge Player (Send Push)
+                </>
+              )}
+            </button>
           </div>
         )}
 
