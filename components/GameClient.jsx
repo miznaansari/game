@@ -793,7 +793,7 @@ export default function GameClient({ game, user, initialMessages }) {
                       cellClass = "bg-gradient-to-br from-emerald-400/90 to-teal-500/90 text-white shadow-md shadow-emerald-500/10 cursor-default scale-[0.98] opacity-90";
                       cellContent = emoji;
                     } else if (isFlipped) {
-                      cellClass = "bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-lg shadow-indigo-500/20 scale-102 border-2 border-indigo-400";
+                      cellClass = "bg-white text-slate-900 shadow-md scale-102 border-2 border-indigo-500";
                       cellContent = emoji;
                     } else {
                       cellClass = "bg-gradient-to-br from-slate-700 to-slate-800 text-white hover:from-indigo-950 hover:to-slate-900 border border-slate-600/30 active-scale shadow-sm cursor-pointer hover:border-indigo-400/50";
