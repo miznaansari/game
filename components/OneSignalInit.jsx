@@ -15,6 +15,16 @@ export default function OneSignalInit({ userId }) {
       if (userId) {
         console.log("[ONESIGNAL] Logging in external user ID:", userId);
         await OneSignal.login(userId);
+
+        try {
+          // Explicitly request notification permission (required on Android Chrome / PWA)
+          if (!OneSignal.Notifications.permission) {
+            console.log("[ONESIGNAL] Notification permission not granted. Requesting...");
+            await OneSignal.Notifications.requestPermission();
+          }
+        } catch (e) {
+          console.warn("[ONESIGNAL] Failed to request notification permission:", e);
+        }
       } else {
         console.log("[ONESIGNAL] No user, logging out of subscription");
         await OneSignal.logout();
