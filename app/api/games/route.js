@@ -54,8 +54,12 @@ export async function POST(request) {
       },
     });
 
-    // Check if the opponent is online before sending push notification
-    const isOnline = await checkUserOnline(opponent.id);
+    // Check if the opponent is online before sending push notification.
+    // 100% online confirm: must be online in DB AND active on socket server.
+    const isOnlineDb = opponent.isOnline;
+    const isOnlineSocket = await checkUserOnline(opponent.id);
+    const isOnline = isOnlineDb && isOnlineSocket;
+
     if (!isOnline) {
       // Send push: primary = external_id (DB user ID linked via OneSignal.login()),
       // fallback = subscription UUID stored in DB
@@ -70,7 +74,7 @@ export async function POST(request) {
       });
       console.log(`Push notification sent to offline opponent ${receiverId}.`);
     } else {
-      console.log(`Opponent ${receiverId} is online; skipping push notification.`);
+      console.log(`Opponent ${receiverId} is confirmed online; skipping push notification.`);
     }
 
     return NextResponse.json({
