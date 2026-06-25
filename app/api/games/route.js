@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/auth";
-import { sendPushNotification } from "@/lib/push";
+import { sendPushNotification, checkUserOnline } from "@/lib/push";
 
 export async function POST(request) {
   try {
@@ -54,20 +54,23 @@ export async function POST(request) {
       },
     });
 
-    // Send push: primary = external_id (DB user ID linked via OneSignal.login()),
-    // fallback = subscription UUID stored in DB
-    await sendPushNotification({
-      externalId: opponent.id,
-      playerId: opponent.oneSignalPlayerId,
-      title: mode === "MEMORY" ? "1v1 Memory Match Invite! 🧩" : "1v1 Grid Battleship Invite! 🎮",
-      message: mode === "MEMORY"
-        ? `${user.name || user.email} invited you to play Emoji Memory Match! 🧩`
-        : `${user.name || user.email} invited you to play a 1v1 Grid Battleship game! 🎯`,
-      url: `/game/${game.id}`,
-    });
-
-    {
-      console.log(`Push notification attempt completed for opponent ${receiverId}.`);
+    // Check if the opponent is online before sending push notification
+    const isOnline = await checkUserOnline(opponent.id);
+    if (!isOnline) {
+      // Send push: primary = external_id (DB user ID linked via OneSignal.login()),
+      // fallback = subscription UUID stored in DB
+      await sendPushNotification({
+        externalId: opponent.id,
+        playerId: opponent.oneSignalPlayerId,
+        title: mode === "MEMORY" ? "1v1 Memory Match Invite! 🧩" : "1v1 Grid Battleship Invite! 🎮",
+        message: mode === "MEMORY"
+          ? `${user.name || user.email} invited you to play Emoji Memory Match! 🧩`
+          : `${user.name || user.email} invited you to play a 1v1 Grid Battleship game! 🎯`,
+        url: `/game/${game.id}`,
+      });
+      console.log(`Push notification sent to offline opponent ${receiverId}.`);
+    } else {
+      console.log(`Opponent ${receiverId} is online; skipping push notification.`);
     }
 
     return NextResponse.json({

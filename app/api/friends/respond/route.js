@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/auth";
+import { sendPushNotification } from "@/lib/push";
 
 export async function POST(request) {
   try {
@@ -17,6 +18,10 @@ export async function POST(request) {
 
     const friendship = await prisma.friendship.findUnique({
       where: { id: friendshipId },
+      include: {
+        sender: true,
+        receiver: true,
+      },
     });
 
     if (!friendship) {
@@ -33,6 +38,16 @@ export async function POST(request) {
         where: { id: friendshipId },
         data: { status: "ACCEPTED" },
       });
+
+      // Send push notification to the sender that their friend request was accepted
+      await sendPushNotification({
+        externalId: friendship.sender.id,
+        playerId: friendship.sender.oneSignalPlayerId,
+        title: "Friend Request Accepted! 🎉",
+        message: `${friendship.receiver.name || friendship.receiver.email} accepted your friend request!`,
+        url: `/`, // Link to dashboard
+      });
+
       return NextResponse.json({ message: "Friend request accepted", friendship: updated });
     } else if (action === "DECLINE") {
       await prisma.friendship.delete({

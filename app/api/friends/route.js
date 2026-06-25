@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/auth";
+import { sendPushNotification } from "@/lib/push";
 
 // Fetch current user's friendships (sent pending, received pending, accepted)
 export async function GET() {
@@ -116,6 +117,15 @@ export async function POST(request) {
         receiverId: targetUser.id,
         status: "PENDING",
       },
+    });
+
+    // Send push notification to targetUser
+    await sendPushNotification({
+      externalId: targetUser.id,
+      playerId: targetUser.oneSignalPlayerId,
+      title: "New Friend Request! 👥",
+      message: `${user.name || user.email} sent you a friend request!`,
+      url: `/`, // Link to dashboard where request can be accepted
     });
 
     return NextResponse.json({
