@@ -73,40 +73,50 @@ export default function ChatWindowClient({ user, recipientId }) {
       handleMessageReceived(e.detail);
     };
 
+    const handleFriendStatusChanged = ({ userId, status }) => {
+      if (userId === recipientId) {
+        setFriend((prevFriend) => {
+          if (!prevFriend) return null;
+          return {
+            ...prevFriend,
+            isOnline: status === "online"
+          };
+        });
+      }
+    };
+
     window.addEventListener("global-direct-message-received", handleGlobalEvent);
     activeSocket.on("direct-message-received", handleMessageReceived);
+    activeSocket.on("friend-status-changed", handleFriendStatusChanged);
 
     return () => {
       window.removeEventListener("global-direct-message-received", handleGlobalEvent);
       activeSocket.off("direct-message-received", handleMessageReceived);
+      activeSocket.off("friend-status-changed", handleFriendStatusChanged);
     };
   }, [user.id, recipientId]);
 
+  // Reset initial load state when switching recipients
+  useEffect(() => {
+    isInitialLoad.current = true;
+  }, [recipientId]);
+
   // Auto scroll to bottom
   useEffect(() => {
-    if (loading || messages.length === 0) return;
+    if (loading) return;
 
-    if (isInitialLoad.current) {
-      // Instant scroll on initial load so there's no laggy sliding animation when opening the chat
-      const timer = setTimeout(() => {
-        if (scrollContainerRef.current) {
-          scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
-        }
+    const performScroll = () => {
+      if (isInitialLoad.current) {
+        messagesEndRef.current?.scrollIntoView({ behavior: "auto", block: "end" });
         isInitialLoad.current = false;
-      }, 50);
-      return () => clearTimeout(timer);
-    } else {
-      // Smooth scroll for new messages sent or received in real-time
-      const timer = setTimeout(() => {
-        if (scrollContainerRef.current) {
-          scrollContainerRef.current.scrollTo({
-            top: scrollContainerRef.current.scrollHeight,
-            behavior: "smooth"
-          });
-        }
-      }, 50);
-      return () => clearTimeout(timer);
-    }
+      } else {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+      }
+    };
+
+    // Execute scroll with a tiny timeout to ensure elements are fully painted
+    const timer = setTimeout(performScroll, 100);
+    return () => clearTimeout(timer);
   }, [messages, loading]);
 
   const handleSendMessage = async (e) => {

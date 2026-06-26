@@ -119,6 +119,21 @@ export default function OneSignalInit({ userId }) {
         if (hasPermission && currentId) {
           await registerPlayerId(currentId);
           setShowPrompt(false);
+        } else if (hasPermission) {
+          // Native permission is granted, but subscription is not yet fully active.
+          // This resolves the Android/Chrome subscription issue by calling optIn programmatically.
+          try {
+            console.log("[ONESIGNAL] Notification permission already granted. Opting in programmatically...");
+            await osInstance.User.PushSubscription.optIn();
+            
+            const newId = osInstance.User.PushSubscription.id;
+            if (newId) {
+              await registerPlayerId(newId);
+              setShowPrompt(false);
+            }
+          } catch (err) {
+            console.error("[ONESIGNAL] Programmatic optIn failed:", err);
+          }
         } else {
           if (isIOS && !isPWA) {
             setPromptType("ios-pwa");
@@ -141,21 +156,16 @@ export default function OneSignalInit({ userId }) {
     window.OneSignalDeferred = window.OneSignalDeferred || [];
     window.OneSignalDeferred.push(async function (OneSignal) {
       try {
-        console.log("[ONESIGNAL] User triggered permission request.");
-        const granted = await OneSignal.Notifications.requestPermission();
-        if (granted) {
+        console.log("[ONESIGNAL] Triggering optIn flow.");
+        await OneSignal.User.PushSubscription.optIn();
+        
+        const currentId = OneSignal.User.PushSubscription.id;
+        if (currentId) {
           setShowPrompt(false);
-          const currentId = OneSignal.User.PushSubscription.id;
-          if (currentId && userId) {
-            await fetch("/api/user/onesignal", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ playerId: currentId }),
-            });
-          }
+          await registerPlayerId(currentId);
         }
       } catch (err) {
-        console.error("[ONESIGNAL] Error requesting permission:", err);
+        console.error("[ONESIGNAL] Error requesting permission / opting in:", err);
       }
     });
   };

@@ -27,6 +27,48 @@ export default function DashboardClient({ user }) {
   const [socket, setSocket] = useState(null);
   const [actionLoadingId, setActionLoadingId] = useState(null);
   const [inviteTargetId, setInviteTargetId] = useState(null);
+  const [notificationsDisabled, setNotificationsDisabled] = useState(false);
+
+  // Check browser push notification permission status on mount & focus
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const checkPermission = () => {
+        if ("Notification" in window) {
+          if (Notification.permission !== "granted") {
+            setNotificationsDisabled(true);
+          } else {
+            setNotificationsDisabled(false);
+          }
+        }
+      };
+
+      checkPermission();
+      window.addEventListener("focus", checkPermission);
+      return () => window.removeEventListener("focus", checkPermission);
+    }
+  }, []);
+
+  const enableNotifications = () => {
+    window.OneSignalDeferred = window.OneSignalDeferred || [];
+    window.OneSignalDeferred.push(async function (OneSignal) {
+      try {
+        console.log("[ONESIGNAL] Requesting opt-in from Dashboard...");
+        await OneSignal.User.PushSubscription.optIn();
+        
+        const currentId = OneSignal.User.PushSubscription.id;
+        if (currentId && user.id) {
+          await fetch("/api/user/onesignal", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ playerId: currentId }),
+          });
+          setNotificationsDisabled(false);
+        }
+      } catch (err) {
+        console.error("Error enabling notifications from dashboard:", err);
+      }
+    });
+  };
 
   // Load friends and games lists
   const fetchData = async () => {
@@ -187,7 +229,7 @@ export default function DashboardClient({ user }) {
   };
 
   // Helper Stats Calculations
-  const onlineFriendsCount = friends.accepted.filter(f => statuses[f.friend.id] === "online").length;
+  const onlineFriendsCount = friends.accepted.filter(f => statuses[f.friend.id] !== undefined ? statuses[f.friend.id] === "online" : f.friend.isOnline).length;
   const winsCount = games.pastGames.filter(g => g.winnerId === user.id).length;
   const lossesCount = games.pastGames.filter(g => g.winnerId && g.winnerId !== user.id).length;
   const currentLevel = 1 + games.pastGames.length;
@@ -343,6 +385,29 @@ export default function DashboardClient({ user }) {
             {/* TAB 1: HOME */}
             {activeTab === "home" && (
               <div className="space-y-6">
+                {/* Push Notification Warning Alert */}
+                {notificationsDisabled && (
+                  <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-4 flex items-center justify-between gap-4 shadow-sm">
+                    <div className="flex items-start gap-3 min-w-0">
+                      <div className="w-9 h-9 rounded-full bg-amber-500/10 text-amber-500 flex items-center justify-center shrink-0">
+                        <span className="material-symbols-outlined font-bold text-[20px]">notifications_off</span>
+                      </div>
+                      <div className="min-w-0">
+                        <h4 className="font-display font-extrabold text-xs text-on-surface">Enable Push Notifications</h4>
+                        <p className="text-[10px] font-medium text-on-surface-variant leading-relaxed mt-0.5">
+                          Turn on notifications to receive live challenges, game invites, and chat messages in real-time.
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={enableNotifications}
+                      className="px-3 py-1 bg-amber-500 text-white text-xs font-bold rounded-lg active-scale transition-transform cursor-pointer shrink-0 hover:bg-amber-600 shadow-sm"
+                    >
+                      Enable
+                    </button>
+                  </div>
+                )}
+
                 {/* Welcome section */}
                 <section className="space-y-1">
                   <p className="text-on-surface-variant font-bold text-xs uppercase tracking-wider">Welcome back,</p>
@@ -639,7 +704,7 @@ export default function DashboardClient({ user }) {
                   ) : (
                     <div className="space-y-2">
                       {filteredFriends.map(({ friendshipId, friend }) => {
-                        const isOnline = statuses[friend.id] === "online";
+                        const isOnline = statuses[friend.id] !== undefined ? statuses[friend.id] === "online" : friend.isOnline;
                         return (
                           <div key={friendshipId} className="flex items-center justify-between py-2 border-b border-outline-variant/20 hover:border-primary/20 transition-all active-scale group cursor-pointer">
                             <div className="flex items-center gap-3 overflow-hidden mr-2">

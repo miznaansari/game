@@ -56,6 +56,33 @@ export default function ChatsClient({ user }) {
     };
   }, []);
 
+  // Listen for real-time online/offline status changes of friends
+  useEffect(() => {
+    const activeSocket = window.globalSocket;
+    if (!activeSocket) return;
+
+    const handleFriendStatusChanged = ({ userId, status }) => {
+      setChats((prevChats) => {
+        return prevChats.map((c) => {
+          if (c.friend.id === userId) {
+            return {
+              ...c,
+              friend: {
+                ...c.friend,
+                isOnline: status === "online"
+              }
+            };
+          }
+          return c;
+        });
+      });
+    };
+
+    activeSocket.on("friend-status-changed", handleFriendStatusChanged);
+    return () => {
+      activeSocket.off("friend-status-changed", handleFriendStatusChanged);
+    };
+  }, []);
   const getInitials = (name, email) => {
     if (name) {
       return name.split(" ").map(n => n[0]).join("").toUpperCase().substring(0, 2);
