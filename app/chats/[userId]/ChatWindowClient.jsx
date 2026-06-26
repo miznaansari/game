@@ -16,6 +16,8 @@ export default function ChatWindowClient({ user, recipientId }) {
   const [creatingGame, setCreatingGame] = useState(false);
 
   const messagesEndRef = useRef(null);
+  const scrollContainerRef = useRef(null);
+  const isInitialLoad = useRef(true);
 
   // Load chat user details and history
   useEffect(() => {
@@ -48,35 +50,64 @@ export default function ChatWindowClient({ user, recipientId }) {
 
   // Socket Connection and logic
   useEffect(() => {
-    const socketUrl = (typeof window !== "undefined" && window.location.hostname === "localhost")
-      ? "http://localhost:3001"
-      : (process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:3001");
-    const newSocket = io(socketUrl, {
-      transports: ["websocket"]
-    });
-    setSocket(newSocket);
+    let activeSocket = window.globalSocket;
+    if (!activeSocket) {
+      const socketUrl = (typeof window !== "undefined" && window.location.hostname === "localhost")
+        ? "http://localhost:3001"
+        : (process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:3001");
+      activeSocket = io(socketUrl, {
+        transports: ["websocket"]
+      });
+      window.globalSocket = activeSocket;
+    }
+    setSocket(activeSocket);
 
-    newSocket.on("connect", () => {
-      console.log("Chat window connected to socket server");
-      newSocket.emit("user-online", user.id);
-    });
-
-    newSocket.on("direct-message-received", (message) => {
+    const handleMessageReceived = (message) => {
       // Add message if it belongs to this conversation
       if (message.senderId === recipientId && message.receiverId === user.id) {
         setMessages((prev) => [...prev, message]);
       }
-    });
+    };
+
+    const handleGlobalEvent = (e) => {
+      handleMessageReceived(e.detail);
+    };
+
+    window.addEventListener("global-direct-message-received", handleGlobalEvent);
+    activeSocket.on("direct-message-received", handleMessageReceived);
 
     return () => {
-      newSocket.disconnect();
+      window.removeEventListener("global-direct-message-received", handleGlobalEvent);
+      activeSocket.off("direct-message-received", handleMessageReceived);
     };
   }, [user.id, recipientId]);
 
   // Auto scroll to bottom
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+    if (loading || messages.length === 0) return;
+
+    if (isInitialLoad.current) {
+      // Instant scroll on initial load so there's no laggy sliding animation when opening the chat
+      const timer = setTimeout(() => {
+        if (scrollContainerRef.current) {
+          scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
+        }
+        isInitialLoad.current = false;
+      }, 50);
+      return () => clearTimeout(timer);
+    } else {
+      // Smooth scroll for new messages sent or received in real-time
+      const timer = setTimeout(() => {
+        if (scrollContainerRef.current) {
+          scrollContainerRef.current.scrollTo({
+            top: scrollContainerRef.current.scrollHeight,
+            behavior: "smooth"
+          });
+        }
+      }, 50);
+      return () => clearTimeout(timer);
+    }
+  }, [messages, loading]);
 
   const handleSendMessage = async (e) => {
     if (e) e.preventDefault();
@@ -187,7 +218,7 @@ export default function ChatWindowClient({ user, recipientId }) {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-background max-w-md mx-auto relative border-x border-outline-variant/10 shadow-2xl">
+    <div className="min-h-screen flex flex-col bg-background w-full max-w-md md:max-w-lg lg:max-w-xl mx-auto relative border-x border-outline-variant/10 shadow-2xl">
       {/* Header */}
       <header className="sticky top-0 z-30 bg-surface-container-lowest/80 backdrop-blur-xl border-b border-outline-variant/20 px-4 py-3 flex items-center space-x-3">
         <button
@@ -237,7 +268,7 @@ export default function ChatWindowClient({ user, recipientId }) {
       </header>
 
       {/* Message Window Area */}
-      <main className="flex-1 overflow-y-auto px-4 py-4 space-y-4 bg-surface-container/10 relative">
+      <main ref={scrollContainerRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-4 bg-surface-container/10 relative">
         {loading ? (
           <div className="space-y-4 py-4">
             <div className="flex justify-start">

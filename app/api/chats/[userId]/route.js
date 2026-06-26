@@ -86,6 +86,11 @@ export async function POST(request, { params }) {
         isGameInvite,
         inviteGameId,
         inviteMode
+      },
+      include: {
+        sender: {
+          select: { name: true, email: true }
+        }
       }
     });
 

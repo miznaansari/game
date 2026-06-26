@@ -61,41 +61,42 @@ export default function DashboardClient({ user }) {
 
   // Socket Connection and logic
   useEffect(() => {
-    const socketUrl = (typeof window !== "undefined" && window.location.hostname === "localhost")
-      ? "http://localhost:3001"
-      : (process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:3001");
-    const newSocket = io(socketUrl, {
-      transports: ["websocket"]
-    });
-    setSocket(newSocket);
+    let activeSocket = window.globalSocket;
+    if (!activeSocket) {
+      const socketUrl = (typeof window !== "undefined" && window.location.hostname === "localhost")
+        ? "http://localhost:3001"
+        : (process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:3001");
+      activeSocket = io(socketUrl, {
+        transports: ["websocket"]
+      });
+      window.globalSocket = activeSocket;
+    }
+    setSocket(activeSocket);
 
-    newSocket.on("connect", () => {
-      console.log("Connected to socket server");
-      newSocket.emit("user-online", user.id);
-    });
-
-    newSocket.on("friend-status-changed", ({ userId, status }) => {
+    const handleFriendStatus = ({ userId, status }) => {
       setStatuses((prev) => ({ ...prev, [userId]: status }));
-    });
+    };
 
-    newSocket.on("invite-received", ({ senderId, senderName, gameId, mode }) => {
+    const handleInvite = ({ senderId, senderName, gameId, mode }) => {
       setActiveInvite({ senderId, senderName, gameId, mode: mode || "BATTLE" });
-    });
+    };
+
+    activeSocket.on("friend-status-changed", handleFriendStatus);
+    activeSocket.on("invite-received", handleInvite);
+
+    // Request online status for all accepted friends
+    if (friends.accepted.length > 0) {
+      const ids = friends.accepted.map(f => f.friend.id);
+      activeSocket.emit("get-online-status", ids, (response) => {
+        setStatuses(response);
+      });
+    }
 
     return () => {
-      newSocket.disconnect();
+      activeSocket.off("friend-status-changed", handleFriendStatus);
+      activeSocket.off("invite-received", handleInvite);
     };
-  }, [user.id]);
-
-  // Request online status for all accepted friends
-  useEffect(() => {
-    if (!socket || friends.accepted.length === 0) return;
-
-    const ids = friends.accepted.map(f => f.friend.id);
-    socket.emit("get-online-status", ids, (response) => {
-      setStatuses(response);
-    });
-  }, [socket, friends.accepted]);
+  }, [user.id, friends.accepted]);
 
   const handleAddFriend = async (e) => {
     e.preventDefault();

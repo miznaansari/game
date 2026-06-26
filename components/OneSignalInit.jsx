@@ -1,20 +1,80 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import Script from "next/script";
+import { io } from "socket.io-client";
 
 export default function OneSignalInit({ userId }) {
+  const router = useRouter();
   const [showPrompt, setShowPrompt] = useState(false);
   const [promptType, setPromptType] = useState("standard"); // "standard" or "ios-pwa"
   const [isDismissed, setIsDismissed] = useState(false);
+  const [activeNotification, setActiveNotification] = useState(null); // { senderName, content, senderId, isInvite }
 
+  // 1. Global Socket.io initialization & Heartbeat Ping
+  useEffect(() => {
+    if (!userId) return;
+
+    const socketUrl = (typeof window !== "undefined" && window.location.hostname === "localhost")
+      ? "http://localhost:3001"
+      : (process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:3001");
+      
+    const socket = io(socketUrl, {
+      transports: ["websocket"]
+    });
+    window.globalSocket = socket;
+
+    socket.on("connect", () => {
+      console.log("[SOCKET] Connected at root layout");
+      socket.emit("user-online", userId);
+    });
+
+    socket.on("direct-message-received", (message) => {
+      // Dispatch custom window event so currently open chats can receive it instantly
+      window.dispatchEvent(new CustomEvent("global-direct-message-received", { detail: message }));
+
+      // Only show top notification if we are NOT actively viewing the sender's chat screen
+      const isViewingChat = window.location.pathname === `/chats/${message.senderId}`;
+      if (!isViewingChat) {
+        const senderName = message.sender?.name || message.sender?.email?.split("@")[0] || "Someone";
+        setActiveNotification({
+          senderId: message.senderId,
+          senderName,
+          content: message.isGameInvite ? "Challenged you to a game!" : message.content,
+          isInvite: message.isGameInvite
+        });
+      }
+    });
+
+    // Heartbeat ping interval: executes every 15 seconds to ensure online status synchronicity
+    const pingInterval = setInterval(() => {
+      socket.emit("ping-user", userId);
+    }, 15000);
+
+    return () => {
+      clearInterval(pingInterval);
+      socket.disconnect();
+      window.globalSocket = null;
+    };
+  }, [userId]);
+
+  // Clear top notification after 5 seconds
+  useEffect(() => {
+    if (!activeNotification) return;
+    const timer = setTimeout(() => {
+      setActiveNotification(null);
+    }, 5000);
+    return () => clearTimeout(timer);
+  }, [activeNotification]);
+
+  // 2. OneSignal PWA Push initialization
   useEffect(() => {
     if (!userId) {
       setShowPrompt(false);
       return;
     }
 
-    // Client-side detection for iOS and PWA status
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
     const isPWA = window.matchMedia("(display-mode: standalone)").matches || window.navigator?.standalone === true;
 
@@ -22,7 +82,7 @@ export default function OneSignalInit({ userId }) {
     window.OneSignalDeferred.push(async function (OneSignal) {
       await OneSignal.init({
         appId: process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID || "89ccfa0f-7840-4f33-9284-e9d0e44865a9",
-        allowLocalhostAsSecureOrigin: true, // helps with testing on localhost
+        allowLocalhostAsSecureOrigin: true,
       });
 
       console.log("[ONESIGNAL] Logging in external user ID:", userId);
@@ -42,7 +102,6 @@ export default function OneSignalInit({ userId }) {
         }
       };
 
-      // Handle subscription state changes
       OneSignal.User.PushSubscription.addEventListener("change", async (event) => {
         if (event.current.token) {
           const playerId = OneSignal.User.PushSubscription.id;
@@ -61,14 +120,12 @@ export default function OneSignalInit({ userId }) {
           await registerPlayerId(currentId);
           setShowPrompt(false);
         } else {
-          // If no permission or not subscribed
           if (isIOS && !isPWA) {
             setPromptType("ios-pwa");
           } else {
             setPromptType("standard");
           }
           
-          // Only show if not dismissed in this session
           const dismissed = sessionStorage.getItem("onesignal-prompt-dismissed");
           if (!dismissed) {
             setShowPrompt(true);
@@ -76,7 +133,6 @@ export default function OneSignalInit({ userId }) {
         }
       };
 
-      // Check current permission status immediately on load
       await checkPermissionStatus(OneSignal);
     });
   }, [userId]);
@@ -110,15 +166,6 @@ export default function OneSignalInit({ userId }) {
     setIsDismissed(true);
   };
 
-  if (!userId || !showPrompt || isDismissed) {
-    return (
-      <Script
-        src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js"
-        strategy="afterInteractive"
-      />
-    );
-  }
-
   return (
     <>
       <style dangerouslySetInnerHTML={{ __html: `
@@ -126,67 +173,113 @@ export default function OneSignalInit({ userId }) {
           from { transform: translateY(100px); opacity: 0; }
           to { transform: translateY(0); opacity: 1; }
         }
+        @keyframes slideDown {
+          from { transform: translate(-50%, -100px); opacity: 0; }
+          to { transform: translate(-50%, 0); opacity: 1; }
+        }
       `}} />
+      
       <Script
         src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js"
         strategy="afterInteractive"
       />
-      <div 
-        style={{ animation: "slideUp 0.3s ease-out forwards" }}
-        className="fixed bottom-4 left-4 right-4 md:left-auto md:right-4 z-[9999] max-w-md bg-surface-container-high/95 backdrop-blur-md border border-outline-variant/30 rounded-2xl shadow-2xl p-5 flex flex-col gap-4"
-      >
-        <div className="flex items-start justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-              <span className="material-symbols-outlined font-bold text-2xl">notifications_active</span>
+
+      {/* Top Middle Real-Time Notification banner */}
+      {activeNotification && (
+        <div
+          onClick={() => {
+            router.push(`/chats/${activeNotification.senderId}`);
+            setActiveNotification(null);
+          }}
+          style={{ animation: "slideDown 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards" }}
+          className="fixed top-4 left-1/2 -translate-x-1/2 z-[10000] w-[92%] max-w-sm bg-surface-container-high/95 backdrop-blur-md border border-primary/20 rounded-2xl shadow-2xl p-4 flex items-center justify-between gap-3 cursor-pointer active-scale transition-all hover:bg-surface-container-highest"
+        >
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-9 h-9 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0">
+              <span className="material-symbols-outlined text-[20px]">
+                {activeNotification.isInvite ? "sports_esports" : "chat"}
+              </span>
             </div>
-            <div>
-              <h3 className="font-display font-extrabold text-sm text-on-surface">
-                {promptType === "ios-pwa" ? "Add to Home Screen" : "Enable Push Notifications"}
-              </h3>
-              <p className="text-[11px] font-bold text-outline mt-0.5">
-                {promptType === "ios-pwa"
-                  ? "Required to receive live game invites and friend requests on iOS."
-                  : "Never miss a game invite, friend request, or chat reaction!"}
+            <div className="min-w-0">
+              <h4 className="font-display font-extrabold text-xs text-on-surface truncate">
+                {activeNotification.isInvite ? "Game Invite Received" : `New Message from ${activeNotification.senderName}`}
+              </h4>
+              <p className="text-[11px] font-medium text-on-surface-variant truncate mt-0.5">
+                {activeNotification.content}
               </p>
             </div>
           </div>
-          <button 
-            onClick={handleDismiss}
-            className="w-6 h-6 rounded-full hover:bg-surface-container-highest flex items-center justify-center text-outline hover:text-on-surface transition-colors cursor-pointer"
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setActiveNotification(null);
+            }}
+            className="w-6 h-6 rounded-full hover:bg-surface-container-highest flex items-center justify-center text-outline hover:text-on-surface transition-colors shrink-0 cursor-pointer"
           >
-            <span className="material-symbols-outlined text-[18px]">close</span>
+            <span className="material-symbols-outlined text-[16px]">close</span>
           </button>
         </div>
+      )}
 
-        {promptType === "ios-pwa" ? (
-          <div className="text-[11px] leading-relaxed text-on-surface-variant bg-surface-container-lowest/50 border border-outline-variant/20 rounded-xl p-3">
-            <p className="font-bold flex items-center gap-1.5 mb-1 text-primary">
-              <span className="material-symbols-outlined text-sm">info</span> Setup Steps:
-            </p>
-            <ol className="list-decimal list-inside space-y-1 font-bold text-outline">
-              <li>Tap the <strong className="text-on-surface">Share</strong> button 📤 in Safari.</li>
-              <li>Select <strong className="text-on-surface">"Add to Home Screen"</strong> ➕.</li>
-              <li>Open the installed app and enable notifications!</li>
-            </ol>
-          </div>
-        ) : (
-          <div className="flex items-center gap-3 w-full">
-            <button
-              onClick={handleEnableNotifications}
-              className="flex-1 glossy-primary py-2.5 rounded-xl text-white font-bold text-xs cursor-pointer shadow-sm hover:shadow-md transition-all active-scale text-center"
-            >
-              Enable Notifications
-            </button>
-            <button
+      {/* Bottom PWA Push Consent Request */}
+      {showPrompt && !isDismissed && (
+        <div 
+          style={{ animation: "slideUp 0.3s ease-out forwards" }}
+          className="fixed bottom-4 left-4 right-4 md:left-auto md:right-4 z-[9999] max-w-md bg-surface-container-high/95 backdrop-blur-md border border-outline-variant/30 rounded-2xl shadow-2xl p-5 flex flex-col gap-4"
+        >
+          <div className="flex items-start justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                <span className="material-symbols-outlined font-bold text-2xl">notifications_active</span>
+              </div>
+              <div>
+                <h3 className="font-display font-extrabold text-sm text-on-surface">
+                  {promptType === "ios-pwa" ? "Add to Home Screen" : "Enable Push Notifications"}
+                </h3>
+                <p className="text-[11px] font-bold text-outline mt-0.5">
+                  {promptType === "ios-pwa"
+                    ? "Required to receive live game invites and friend requests on iOS."
+                    : "Never miss a game invite, friend request, or chat reaction!"}
+                </p>
+              </div>
+            </div>
+            <button 
               onClick={handleDismiss}
-              className="flex-1 bg-surface-container hover:bg-surface-container-high py-2.5 rounded-xl text-outline hover:text-on-surface border border-outline-variant/30 font-bold text-xs cursor-pointer transition-all active-scale text-center"
+              className="w-6 h-6 rounded-full hover:bg-surface-container-highest flex items-center justify-center text-outline hover:text-on-surface transition-colors cursor-pointer"
             >
-              Maybe Later
+              <span className="material-symbols-outlined text-[18px]">close</span>
             </button>
           </div>
-        )}
-      </div>
+
+          {promptType === "ios-pwa" ? (
+            <div className="text-[11px] leading-relaxed text-on-surface-variant bg-surface-container-lowest/50 border border-outline-variant/20 rounded-xl p-3">
+              <p className="font-bold flex items-center gap-1.5 mb-1 text-primary">
+                <span className="material-symbols-outlined text-sm">info</span> Setup Steps:
+              </p>
+              <ol className="list-decimal list-inside space-y-1 font-bold text-outline">
+                <li>Tap the <strong className="text-on-surface">Share</strong> button 📤 in Safari.</li>
+                <li>Select <strong className="text-on-surface">"Add to Home Screen"</strong> ➕.</li>
+                <li>Open the installed app and enable notifications!</li>
+              </ol>
+            </div>
+          ) : (
+            <div className="flex items-center gap-3 w-full">
+              <button
+                onClick={handleEnableNotifications}
+                className="flex-1 glossy-primary py-2.5 rounded-xl text-white font-bold text-xs cursor-pointer shadow-sm hover:shadow-md transition-all active-scale text-center"
+              >
+                Enable Notifications
+              </button>
+              <button
+                onClick={handleDismiss}
+                className="flex-1 bg-surface-container hover:bg-surface-container-high py-2.5 rounded-xl text-outline hover:text-on-surface border border-outline-variant/30 font-bold text-xs cursor-pointer transition-all active-scale text-center"
+              >
+                Maybe Later
+              </button>
+            </div>
+          )}
+        </div>
+      )}
     </>
   );
 }

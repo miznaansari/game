@@ -26,6 +26,36 @@ export default function ChatsClient({ user }) {
     fetchChats();
   }, []);
 
+  // Listen for real-time message events to dynamically update conversation preview card
+  useEffect(() => {
+    const handleNewMessage = (e) => {
+      const message = e.detail;
+      setChats((prevChats) => {
+        const chatIndex = prevChats.findIndex(
+          (c) => c.friend.id === message.senderId || c.friend.id === message.receiverId
+        );
+        if (chatIndex > -1) {
+          const updatedChats = [...prevChats];
+          updatedChats[chatIndex] = {
+            ...updatedChats[chatIndex],
+            lastMessage: message
+          };
+          return updatedChats.sort((a, b) => {
+            const timeA = a.lastMessage ? new Date(a.lastMessage.createdAt).getTime() : 0;
+            const timeB = b.lastMessage ? new Date(b.lastMessage.createdAt).getTime() : 0;
+            return timeB - timeA;
+          });
+        }
+        return prevChats;
+      });
+    };
+
+    window.addEventListener("global-direct-message-received", handleNewMessage);
+    return () => {
+      window.removeEventListener("global-direct-message-received", handleNewMessage);
+    };
+  }, []);
+
   const getInitials = (name, email) => {
     if (name) {
       return name.split(" ").map(n => n[0]).join("").toUpperCase().substring(0, 2);
@@ -72,7 +102,7 @@ export default function ChatsClient({ user }) {
   });
 
   return (
-    <div className="min-h-screen flex flex-col bg-background pb-20 max-w-md mx-auto relative border-x border-outline-variant/10 shadow-2xl">
+    <div className="min-h-screen flex flex-col bg-background w-full max-w-md md:max-w-lg lg:max-w-xl mx-auto relative border-x border-outline-variant/10 shadow-2xl">
       {/* Header */}
       <header className="sticky top-0 z-30 bg-surface-container-lowest/80 backdrop-blur-xl border-b border-outline-variant/20 p-4 pb-3">
         <div className="flex items-center justify-between mb-4">
