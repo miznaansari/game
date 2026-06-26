@@ -11,6 +11,7 @@ export default function OneSignalInit({ userId }) {
   const [promptType, setPromptType] = useState("standard"); // "standard" or "ios-pwa"
   const [isDismissed, setIsDismissed] = useState(false);
   const [activeNotification, setActiveNotification] = useState(null); // { senderName, content, senderId, isInvite }
+  const [waitingNotification, setWaitingNotification] = useState(null); // { gameId, opponentId, opponentName, mode }
 
   // 1. Global Socket.io initialization & Heartbeat Ping
   useEffect(() => {
@@ -43,6 +44,27 @@ export default function OneSignalInit({ userId }) {
           senderName,
           content: message.isGameInvite ? "Challenged you to a game!" : message.content,
           isInvite: message.isGameInvite
+        });
+      }
+    });
+
+    socket.on("opponent-waiting-status-changed", ({ gameId, opponentId, opponentName, mode, isWaiting }) => {
+      const isViewingGame = window.location.pathname === `/game/${gameId}`;
+      if (isViewingGame) return;
+
+      if (isWaiting) {
+        setWaitingNotification({
+          gameId,
+          opponentId,
+          opponentName,
+          mode
+        });
+      } else {
+        setWaitingNotification((prev) => {
+          if (prev && prev.gameId === gameId) {
+            return null;
+          }
+          return prev;
         });
       }
     });
@@ -229,6 +251,49 @@ export default function OneSignalInit({ userId }) {
             >
               <span className="material-symbols-outlined text-[16px]">close</span>
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Global Opponent Waiting Game Resume Banner */}
+      {waitingNotification && (
+        <div className="fixed top-4 left-0 right-0 z-[10000] flex justify-center px-4 pointer-events-none">
+          <div
+            onClick={() => {
+              router.push(`/game/${waitingNotification.gameId}`);
+              setWaitingNotification(null);
+            }}
+            style={{ animation: "slideDown 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards" }}
+            className="pointer-events-auto w-full max-w-sm bg-gradient-to-r from-emerald-600 to-teal-600 text-white border border-emerald-500/30 rounded-2xl shadow-2xl p-4 flex items-center justify-between gap-3 cursor-pointer active-scale transition-all hover:brightness-105"
+          >
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-9 h-9 rounded-full bg-white/20 text-white flex items-center justify-center shrink-0 animate-pulse">
+                <span className="material-symbols-outlined text-[20px]">sports_esports</span>
+              </div>
+              <div className="min-w-0">
+                <h4 className="font-display font-black text-xs text-white uppercase tracking-wider flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 bg-lime-400 rounded-full animate-ping"></span>
+                  Active Match
+                </h4>
+                <p className="text-[11px] font-bold text-white/90 truncate mt-0.5">
+                  <strong className="text-white">{waitingNotification.opponentName}</strong> is waiting in {waitingNotification.mode === "MEMORY" ? "Memory Match 🧩" : (waitingNotification.mode === "TICTACTOE" ? "Tic Tac Toe ❌⭕" : "Grid Battleship 🎯")}!
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <span className="text-[10px] font-black bg-white text-emerald-700 px-2 py-1 rounded-lg uppercase tracking-wide">
+                Join
+              </span>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setWaitingNotification(null);
+                }}
+                className="w-6 h-6 rounded-full hover:bg-white/20 flex items-center justify-center text-white/70 hover:text-white transition-colors cursor-pointer"
+              >
+                <span className="material-symbols-outlined text-[16px]">close</span>
+              </button>
+            </div>
           </div>
         </div>
       )}

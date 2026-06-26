@@ -23,6 +23,7 @@ export default function DashboardClient({ user }) {
   // General states
   const [loading, setLoading] = useState(true);
   const [statuses, setStatuses] = useState({});
+  const [waitingMatchesMap, setWaitingMatchesMap] = useState({});
   const [activeInvite, setActiveInvite] = useState(null);
   const [socket, setSocket] = useState(null);
   const [actionLoadingId, setActionLoadingId] = useState(null);
@@ -132,8 +133,21 @@ export default function DashboardClient({ user }) {
       setActiveInvite({ senderId, senderName, gameId, mode: mode || "BATTLE" });
     };
 
+    const handleOpponentWaiting = ({ gameId, opponentId, isWaiting }) => {
+      setWaitingMatchesMap((prev) => {
+        const next = { ...prev };
+        if (isWaiting) {
+          next[gameId] = [opponentId];
+        } else {
+          delete next[gameId];
+        }
+        return next;
+      });
+    };
+
     activeSocket.on("friend-status-changed", handleFriendStatus);
     activeSocket.on("invite-received", handleInvite);
+    activeSocket.on("opponent-waiting-status-changed", handleOpponentWaiting);
 
     // Request online status for all accepted friends
     if (friends.accepted.length > 0) {
@@ -146,8 +160,19 @@ export default function DashboardClient({ user }) {
     return () => {
       activeSocket.off("friend-status-changed", handleFriendStatus);
       activeSocket.off("invite-received", handleInvite);
+      activeSocket.off("opponent-waiting-status-changed", handleOpponentWaiting);
     };
   }, [user.id, friends.accepted]);
+
+  // Fetch initial waiting status of opponents for active games
+  useEffect(() => {
+    if (socket && games.activeGames.length > 0) {
+      const activeIds = games.activeGames.map(g => g.id);
+      socket.emit("get-waiting-opponents", activeIds, (response) => {
+        setWaitingMatchesMap(response || {});
+      });
+    }
+  }, [socket, games.activeGames]);
 
   const handleAddFriend = async (e) => {
     e.preventDefault();
@@ -238,6 +263,12 @@ export default function DashboardClient({ user }) {
   };
 
   // Helper Stats Calculations
+  const waitingMatch = games.activeGames.map(g => {
+    const opponent = g.player1Id === user.id ? g.player2 : g.player1;
+    const isWaiting = waitingMatchesMap[g.id] && waitingMatchesMap[g.id].includes(opponent.id);
+    return isWaiting ? { gameId: g.id, opponentName: opponent.name || opponent.email.split("@")[0], mode: g.mode } : null;
+  }).find(Boolean);
+
   const onlineFriendsCount = friends.accepted.filter(f => statuses[f.friend.id] !== undefined ? statuses[f.friend.id] === "online" : f.friend.isOnline).length;
   const winsCount = games.pastGames.filter(g => g.winnerId === user.id).length;
   const lossesCount = games.pastGames.filter(g => g.winnerId && g.winnerId !== user.id).length;
@@ -433,6 +464,35 @@ export default function DashboardClient({ user }) {
                       className="px-3 py-1 bg-amber-500 text-white text-xs font-bold rounded-lg active-scale transition-transform cursor-pointer shrink-0 hover:bg-amber-600 shadow-sm"
                     >
                       Enable
+                    </button>
+                  </div>
+                )}
+
+                {/* Game Resume Option (Pulsing glowing alert) */}
+                {waitingMatch && (
+                  <div 
+                    onClick={() => router.push(`/game/${waitingMatch.gameId}`)}
+                    className="bg-gradient-to-r from-emerald-500/15 via-emerald-600/10 to-emerald-500/15 border-2 border-emerald-500/40 rounded-2xl p-4 flex items-center justify-between gap-4 shadow-lg animate-pulse cursor-pointer active-scale hover:border-emerald-500 transition-all duration-300"
+                  >
+                    <div className="flex items-start gap-3 min-w-0">
+                      <div className="w-10 h-10 rounded-xl bg-emerald-500/25 text-emerald-600 flex items-center justify-center shrink-0">
+                        <span className="material-symbols-outlined font-bold text-[24px]">sports_esports</span>
+                      </div>
+                      <div className="min-w-0">
+                        <span className="bg-emerald-50 text-emerald-700 text-[8px] font-black px-2 py-0.5 rounded-full mb-1 inline-block uppercase tracking-wider bg-emerald-500/15">ACTIVE MATCH</span>
+                        <h4 className="font-display font-extrabold text-xs text-on-surface">
+                          <span className="text-emerald-600 font-black">{waitingMatch.opponentName}</span> is waiting for you!
+                        </h4>
+                        <p className="text-[10px] font-bold text-on-surface-variant leading-relaxed mt-0.5">
+                          Join the {waitingMatch.mode === "MEMORY" ? "Emoji Memory Match" : (waitingMatch.mode === "TICTACTOE" ? "Tic Tac Toe" : "Grid Battleship")} game now to resume.
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      className="px-3.5 py-2 bg-emerald-500 text-white text-xs font-black rounded-xl active-scale shrink-0 hover:bg-emerald-600 shadow-md flex items-center gap-1 cursor-pointer"
+                    >
+                      Join
+                      <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
                     </button>
                   </div>
                 )}
@@ -923,42 +983,54 @@ export default function DashboardClient({ user }) {
                 </div>
 
                 {/* Active Ongoing Games */}
-                {games.activeGames.length > 0 && (
-                  <section className="space-y-3">
-                    <h3 className="font-display text-sm font-extrabold text-on-surface uppercase tracking-wider">
-                      Active Matches ({games.activeGames.length})
-                    </h3>
-                    <div className="space-y-2">
-                      {games.activeGames.map((game) => {
-                        const isP1 = game.player1Id === user.id;
-                        const opponent = isP1 ? game.player2 : game.player1;
-                        const isTurn = game.status === "PLAYING" && game.turn === user.id;
-                        return (
-                          <div 
-                            key={game.id}
-                            className="p-3.5 glossy-surface rounded-xl flex items-center justify-between border border-outline-variant/30 hover:border-primary/30 transition card-shadow"
-                          >
-                            <div>
-                              <p className="font-bold text-sm text-on-surface flex items-center gap-1.5 flex-wrap">
-                                <span>vs {opponent.name || opponent.email}</span>
-                                <span className="text-[9px] text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-full font-bold">{game.mode === "MEMORY" ? "🧩 Memory" : "🎯 Battle"}</span>
-                              </p>
-                              <p className="text-[10px] font-bold text-primary mt-0.5 uppercase tracking-wider">
-                                {isTurn ? "👉 Your Turn" : "⏳ Opponent's Turn"}
-                              </p>
-                            </div>
-                            <button
-                              onClick={() => router.push(`/game/${game.id}`)}
-                              className="px-4 py-2 glossy-primary text-white font-bold text-xs rounded-xl active-scale cursor-pointer"
+                {(() => {
+                  const activeWaitingGames = games.activeGames.filter(game => {
+                    const opponent = game.player1Id === user.id ? game.player2 : game.player1;
+                    return waitingMatchesMap[game.id] && waitingMatchesMap[game.id].includes(opponent.id);
+                  });
+                  
+                  if (activeWaitingGames.length === 0) return null;
+                  
+                  return (
+                    <section className="space-y-3">
+                      <h3 className="font-display text-sm font-extrabold text-on-surface uppercase tracking-wider">
+                        Active Matches ({activeWaitingGames.length})
+                      </h3>
+                      <div className="space-y-2">
+                        {activeWaitingGames.map((game) => {
+                          const isP1 = game.player1Id === user.id;
+                          const opponent = isP1 ? game.player2 : game.player1;
+                          const isTurn = game.status === "PLAYING" && game.turn === user.id;
+                          return (
+                            <div 
+                              key={game.id}
+                              className="p-3.5 glossy-surface rounded-xl flex items-center justify-between border border-outline-variant/30 hover:border-primary/30 transition card-shadow"
                             >
-                              Resume
-                            </button>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </section>
-                )}
+                              <div>
+                                <p className="font-bold text-sm text-on-surface flex items-center gap-1.5 flex-wrap">
+                                  <span>vs {opponent.name || opponent.email}</span>
+                                  <span className="text-[9px] text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-full font-bold">
+                                    {game.mode === "MEMORY" ? "🧩 Memory" : (game.mode === "TICTACTOE" ? "❌⭕ Tic Tac Toe" : "🎯 Battle")}
+                                  </span>
+                                </p>
+                                <p className="text-[10px] font-bold text-primary mt-0.5 uppercase tracking-wider flex items-center gap-1">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping"></span>
+                                  {isTurn ? "👉 Your Turn" : "⏳ Opponent's Turn"}
+                                </p>
+                              </div>
+                              <button
+                                onClick={() => router.push(`/game/${game.id}`)}
+                                className="px-4 py-2 glossy-primary text-white font-bold text-xs rounded-xl active-scale cursor-pointer"
+                              >
+                                Resume
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </section>
+                  );
+                })()}
 
                 {/* Session Actions */}
                 <div className="flex flex-col gap-2 pt-2">

@@ -328,6 +328,7 @@ export default function GameClient({ game, user, initialMessages }) {
     });
 
     return () => {
+      newSocket.emit("leave-game", { gameId: gameState.id, userId: user.id });
       newSocket.disconnect();
       if (window.warningTimeout) clearTimeout(window.warningTimeout);
       if (window.chatNotificationTimeout) clearTimeout(window.chatNotificationTimeout);
