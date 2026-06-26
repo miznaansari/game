@@ -185,7 +185,8 @@ export default function GameClient({ game, user, initialMessages }) {
     });
 
     newSocket.on("game-updated", ({ game: updatedGame, event, userId }) => {
-      setGameState(updatedGame);
+      // Preserve player relations from previous state (socket update omits them)
+      setGameState(prev => ({ ...updatedGame, player1: updatedGame.player1 || prev.player1, player2: updatedGame.player2 || prev.player2, winner: updatedGame.winner || prev.winner }));
       setFiringIndex(null);
       if (userId === user.id && event === "selection") {
         setHasLockedSelections(true);
@@ -198,7 +199,7 @@ export default function GameClient({ game, user, initialMessages }) {
     });
 
     newSocket.on("guess-result", ({ game: updatedGame, guess }) => {
-      setGameState(updatedGame);
+      setGameState(prev => ({ ...updatedGame, player1: updatedGame.player1 || prev.player1, player2: updatedGame.player2 || prev.player2, winner: updatedGame.winner || prev.winner }));
       setFiringIndex(null);
       if (guess.userId === user.id) {
         if (guess.isWinner) {
@@ -224,7 +225,7 @@ export default function GameClient({ game, user, initialMessages }) {
       console.log("CLIENT: tictactoe-move-result received", { game, move });
       triggerHaptic(20);
       if (game) {
-        setGameState(game);
+        setGameState(prev => ({ ...game, player1: game.player1 || prev.player1, player2: game.player2 || prev.player2, winner: game.winner || prev.winner }));
       }
       if (move.userId === user.id) {
         if (move.isWinner) {
@@ -246,7 +247,7 @@ export default function GameClient({ game, user, initialMessages }) {
       console.log("CLIENT: memory-card-flipped received", { userId, cellIndex, emoji, firstCard, flippedIndices });
       triggerHaptic(20);
       if (game) {
-        setGameState(game);
+        setGameState(prev => ({ ...game, player1: game.player1 || prev.player1, player2: game.player2 || prev.player2, winner: game.winner || prev.winner }));
       }
       setRevealedEmojis(prev => ({ ...prev, [cellIndex]: emoji }));
       if (flippedIndices && Array.isArray(flippedIndices)) {
@@ -265,7 +266,7 @@ export default function GameClient({ game, user, initialMessages }) {
 
     newSocket.on("memory-match-result", ({ game, match, flippedIndices, scores, nextTurn, isFinished }) => {
       console.log("CLIENT: memory-match-result received", { match, flippedIndices, scores, nextTurn, isFinished });
-      setGameState(game);
+      setGameState(prev => ({ ...game, player1: game.player1 || prev.player1, player2: game.player2 || prev.player2, winner: game.winner || prev.winner }));
       if (match) {
         triggerHaptic([100, 50, 100]);
         setFlippedCards([]);
