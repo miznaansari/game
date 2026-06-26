@@ -454,6 +454,22 @@ export default function ChatWindowClient({ user, recipientId }) {
 
             if (message.isGameInvite) {
               const inviteMode = message.inviteMode || "BATTLE";
+              const gameInfo = message.game;
+              const isFinished = gameInfo?.status === "FINISHED";
+              
+              let statusText = isMe ? "You challenged them to a match!" : "Challenged you to a match!";
+              if (isFinished) {
+                const winnerName = gameInfo.winnerId === user.id 
+                  ? "You" 
+                  : (gameInfo.winner?.name || gameInfo.winner?.email || friend?.name || friend?.email || "Opponent");
+                const loserName = gameInfo.winnerId === user.id 
+                  ? (friend?.name || friend?.email || "Opponent") 
+                  : "You";
+                statusText = gameInfo.winnerId 
+                  ? `🏆 ${winnerName} won the match against ${loserName}!` 
+                  : "🤝 The match ended in a draw!";
+              }
+
               return (
                 <div key={message.id} className={`flex ${isMe ? "justify-end" : "justify-start"}`}>
                   <div className="w-64 bg-gradient-to-tr from-surface-container-lowest to-surface-container border border-outline-variant/30 rounded-2xl p-4 shadow-md relative overflow-hidden group">
@@ -478,18 +494,25 @@ export default function ChatWindowClient({ user, recipientId }) {
                       </div>
                     </div>
 
-                    <p className="text-xs text-on-surface-variant mb-4 pr-6 leading-relaxed">
-                      {isMe ? "You challenged them to a match!" : "Challenged you to a match!"}
+                    <p className={`text-xs mb-4 pr-6 leading-relaxed ${isFinished ? "text-emerald-600 font-bold" : "text-on-surface-variant"}`}>
+                      {statusText}
                     </p>
 
                     <div className="flex items-center justify-between">
-                      <a
-                        href={`/game/${message.inviteGameId}`}
-                        className="px-3.5 py-1.5 bg-primary text-white text-xs font-bold rounded-xl active-scale transition-transform cursor-pointer inline-flex items-center"
-                      >
-                        Join Match
-                        <span className="material-symbols-outlined text-[14px] ml-1">play_arrow</span>
-                      </a>
+                      {isFinished ? (
+                        <div className="flex items-center gap-1 text-[10px] font-black text-emerald-600 bg-emerald-500/10 px-2 py-1 rounded-lg">
+                          <span className="material-symbols-outlined text-[12px] font-bold">military_tech</span>
+                          COMPLETED
+                        </div>
+                      ) : (
+                        <a
+                          href={`/game/${message.inviteGameId}`}
+                          className="px-3.5 py-1.5 bg-primary text-white text-xs font-bold rounded-xl active-scale transition-transform cursor-pointer inline-flex items-center"
+                        >
+                          Join Match
+                          <span className="material-symbols-outlined text-[14px] ml-1">play_arrow</span>
+                        </a>
+                      )}
                       <span className="text-[9px] text-outline">{timeStr}</span>
                     </div>
                   </div>

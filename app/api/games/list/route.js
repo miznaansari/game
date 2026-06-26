@@ -16,7 +16,16 @@ export async function GET() {
           { player2Id: user.id },
         ],
       },
-      include: {
+      select: {
+        id: true,
+        player1Id: true,
+        player2Id: true,
+        mode: true,
+        status: true,
+        turn: true,
+        winnerId: true,
+        updatedAt: true,
+        createdAt: true,
         player1: {
           select: { id: true, name: true, email: true },
         },

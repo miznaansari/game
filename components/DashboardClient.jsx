@@ -5,13 +5,22 @@ import { useRouter } from "next/navigation";
 import { io } from "socket.io-client";
 import PWAInstallBanner from "./PWAInstallBanner";
 
-export default function DashboardClient({ user }) {
+export default function DashboardClient({ user, defaultTab = "home" }) {
   const router = useRouter();
   const [friends, setFriends] = useState({ pendingSent: [], pendingReceived: [], accepted: [] });
   const [games, setGames] = useState({ activeGames: [], pastGames: [] });
   
   // Navigation tabs: "home", "friends", "history", "profile"
-  const [activeTab, setActiveTab] = useState("home");
+  const activeTab = defaultTab;
+  const setActiveTab = (tabName) => {
+    if (tabName === "home") {
+      router.push("/");
+    } else if (tabName === "friends") {
+      router.push("/play");
+    } else {
+      router.push(`/${tabName}`);
+    }
+  };
   const [searchQuery, setSearchQuery] = useState("");
 
   // Form states
@@ -102,13 +111,6 @@ export default function DashboardClient({ user }) {
 
   useEffect(() => {
     fetchData();
-    if (typeof window !== "undefined") {
-      const params = new URLSearchParams(window.location.search);
-      const tab = params.get("tab");
-      if (tab && ["home", "friends", "history", "profile"].includes(tab)) {
-        setActiveTab(tab);
-      }
-    }
   }, []);
 
   // Socket Connection and logic
@@ -983,54 +985,51 @@ export default function DashboardClient({ user }) {
                 </div>
 
                 {/* Active Ongoing Games */}
-                {(() => {
-                  const activeWaitingGames = games.activeGames.filter(game => {
-                    const opponent = game.player1Id === user.id ? game.player2 : game.player1;
-                    return waitingMatchesMap[game.id] && waitingMatchesMap[game.id].includes(opponent.id);
-                  });
-                  
-                  if (activeWaitingGames.length === 0) return null;
-                  
-                  return (
-                    <section className="space-y-3">
-                      <h3 className="font-display text-sm font-extrabold text-on-surface uppercase tracking-wider">
-                        Active Matches ({activeWaitingGames.length})
-                      </h3>
-                      <div className="space-y-2">
-                        {activeWaitingGames.map((game) => {
-                          const isP1 = game.player1Id === user.id;
-                          const opponent = isP1 ? game.player2 : game.player1;
-                          const isTurn = game.status === "PLAYING" && game.turn === user.id;
-                          return (
-                            <div 
-                              key={game.id}
-                              className="p-3.5 glossy-surface rounded-xl flex items-center justify-between border border-outline-variant/30 hover:border-primary/30 transition card-shadow"
-                            >
-                              <div>
-                                <p className="font-bold text-sm text-on-surface flex items-center gap-1.5 flex-wrap">
-                                  <span>vs {opponent.name || opponent.email}</span>
-                                  <span className="text-[9px] text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-full font-bold">
-                                    {game.mode === "MEMORY" ? "🧩 Memory" : (game.mode === "TICTACTOE" ? "❌⭕ Tic Tac Toe" : "🎯 Battle")}
-                                  </span>
-                                </p>
-                                <p className="text-[10px] font-bold text-primary mt-0.5 uppercase tracking-wider flex items-center gap-1">
-                                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping"></span>
-                                  {isTurn ? "👉 Your Turn" : "⏳ Opponent's Turn"}
-                                </p>
-                              </div>
-                              <button
-                                onClick={() => router.push(`/game/${game.id}`)}
-                                className="px-4 py-2 glossy-primary text-white font-bold text-xs rounded-xl active-scale cursor-pointer"
-                              >
-                                Resume
-                              </button>
+                {games.activeGames.length > 0 && (
+                  <section className="space-y-3">
+                    <h3 className="font-display text-sm font-extrabold text-on-surface uppercase tracking-wider">
+                      Active Matches ({games.activeGames.length})
+                    </h3>
+                    <div className="space-y-2">
+                      {games.activeGames.map((game) => {
+                        const isP1 = game.player1Id === user.id;
+                        const opponent = isP1 ? game.player2 : game.player1;
+                        const isTurn = game.status === "PLAYING" && game.turn === user.id;
+                        const isOpponentWaiting = waitingMatchesMap[game.id] && waitingMatchesMap[game.id].includes(opponent.id);
+                        return (
+                          <div 
+                            key={game.id}
+                            className={`p-3.5 glossy-surface rounded-xl flex items-center justify-between border transition card-shadow ${
+                              isOpponentWaiting ? "border-emerald-500/40 bg-emerald-500/5 animate-pulse-slow" : "border-outline-variant/30 hover:border-primary/30"
+                            }`}
+                          >
+                            <div>
+                              <p className="font-bold text-sm text-on-surface flex items-center gap-1.5 flex-wrap">
+                                <span>vs {opponent.name || opponent.email}</span>
+                                <span className="text-[9px] text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-full font-bold">
+                                  {game.mode === "MEMORY" ? "🧩 Memory" : (game.mode === "TICTACTOE" ? "❌⭕ Tic Tac Toe" : "🎯 Battle")}
+                                </span>
+                                {isOpponentWaiting && (
+                                  <span className="text-[8px] bg-emerald-500 text-white px-1.5 py-0.5 rounded-full font-black animate-pulse">WAITING</span>
+                                )}
+                              </p>
+                              <p className="text-[10px] font-bold text-primary mt-0.5 uppercase tracking-wider flex items-center gap-1">
+                                {isOpponentWaiting && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping"></span>}
+                                {isTurn ? "👉 Your Turn" : "⏳ Opponent's Turn"}
+                              </p>
                             </div>
-                          );
-                        })}
-                      </div>
-                    </section>
-                  );
-                })()}
+                            <button
+                              onClick={() => router.push(`/game/${game.id}`)}
+                              className="px-4 py-2 glossy-primary text-white font-bold text-xs rounded-xl active-scale cursor-pointer"
+                            >
+                              Resume
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </section>
+                )}
 
                 {/* Session Actions */}
                 <div className="flex flex-col gap-2 pt-2">

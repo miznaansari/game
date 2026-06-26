@@ -229,7 +229,7 @@ export default function ChatsClient({ user }) {
             </p>
             {!searchQuery && (
               <a
-                href="/?tab=friends"
+                href="/play"
                 className="mt-4 px-4 py-2 bg-primary text-white text-xs font-bold rounded-xl active-scale transition-transform cursor-pointer"
               >
                 Find Friends
@@ -309,7 +309,7 @@ export default function ChatsClient({ user }) {
         </a>
 
         <a 
-          href="/?tab=friends"
+          href="/play"
           className="flex flex-col items-center justify-center flex-1 h-full relative cursor-pointer text-on-surface-variant hover:text-primary-container"
         >
           <span className="material-symbols-outlined text-[24px]">sports_esports</span>
@@ -326,7 +326,7 @@ export default function ChatsClient({ user }) {
         </a>
 
         <a 
-          href="/?tab=history"
+          href="/history"
           className="flex flex-col items-center justify-center flex-1 h-full relative cursor-pointer text-on-surface-variant hover:text-primary-container"
         >
           <span className="material-symbols-outlined text-[24px]">history</span>
@@ -334,7 +334,7 @@ export default function ChatsClient({ user }) {
         </a>
 
         <a 
-          href="/?tab=profile"
+          href="/profile"
           className="flex flex-col items-center justify-center flex-1 h-full relative cursor-pointer text-on-surface-variant hover:text-primary-container"
         >
           <span className="material-symbols-outlined text-[24px]">person</span>

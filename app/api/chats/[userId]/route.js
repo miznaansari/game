@@ -40,7 +40,49 @@ export async function GET(request, { params }) {
       orderBy: { createdAt: "asc" }
     });
 
-    return NextResponse.json(messages);
+    // Fetch game details for invite messages to determine status and winner
+    const inviteGameIds = messages
+      .filter((m) => m.isGameInvite && m.inviteGameId)
+      .map((m) => m.inviteGameId);
+
+    let gamesMap = {};
+    if (inviteGameIds.length > 0) {
+      const games = await prisma.game.findMany({
+        where: { id: { in: inviteGameIds } },
+        select: {
+          id: true,
+          status: true,
+          winnerId: true,
+          player1Id: true,
+          player2Id: true,
+          winner: {
+            select: { id: true, name: true, email: true }
+          },
+          player1: {
+            select: { id: true, name: true, email: true }
+          },
+          player2: {
+            select: { id: true, name: true, email: true }
+          }
+        }
+      });
+      games.forEach((game) => {
+        gamesMap[game.id] = game;
+      });
+    }
+
+    // Attach game details to messages
+    const enrichedMessages = messages.map((m) => {
+      if (m.isGameInvite && m.inviteGameId && gamesMap[m.inviteGameId]) {
+        return {
+          ...m,
+          game: gamesMap[m.inviteGameId]
+        };
+      }
+      return m;
+    });
+
+    return NextResponse.json(enrichedMessages);
   } catch (error) {
     console.error("GET /api/chats/[userId] error:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
