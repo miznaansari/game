@@ -228,7 +228,7 @@ export default function ChatWindowClient({ user, recipientId }) {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-background w-full max-w-md md:max-w-lg lg:max-w-xl mx-auto relative border-x border-outline-variant/10 shadow-2xl">
+    <div className="h-[100dvh] flex flex-col bg-background w-full max-w-md md:max-w-lg lg:max-w-xl mx-auto relative border-x border-outline-variant/10 shadow-2xl overflow-hidden">
       {/* Header */}
       <header className="sticky top-0 z-30 bg-surface-container-lowest/80 backdrop-blur-xl border-b border-outline-variant/20 px-4 py-3 flex items-center space-x-3">
         <button

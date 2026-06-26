@@ -129,7 +129,7 @@ export default function ChatsClient({ user }) {
   });
 
   return (
-    <div className="min-h-screen flex flex-col bg-background w-full max-w-md md:max-w-lg lg:max-w-xl mx-auto relative border-x border-outline-variant/10 shadow-2xl">
+    <div className="h-[100dvh] flex flex-col bg-background w-full max-w-md md:max-w-lg lg:max-w-xl mx-auto relative border-x border-outline-variant/10 shadow-2xl overflow-hidden">
       {/* Header */}
       <header className="sticky top-0 z-30 bg-surface-container-lowest/80 backdrop-blur-xl border-b border-outline-variant/20 p-4 pb-3">
         <div className="flex items-center justify-between mb-4">
