@@ -1,0 +1,407 @@
+"use client";
+
+import { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
+import { io } from "socket.io-client";
+
+export default function ChatWindowClient({ user, recipientId }) {
+  const router = useRouter();
+  const [messages, setMessages] = useState([]);
+  const [friend, setFriend] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [inputText, setInputText] = useState("");
+  const [sending, setSending] = useState(false);
+  const [socket, setSocket] = useState(null);
+  const [showAttachmentMenu, setShowAttachmentMenu] = useState(false);
+  const [creatingGame, setCreatingGame] = useState(false);
+
+  const messagesEndRef = useRef(null);
+
+  // Load chat user details and history
+  useEffect(() => {
+    async function initChat() {
+      try {
+        // Load messages history
+        const messagesRes = await fetch(`/api/chats/${recipientId}`);
+        if (messagesRes.ok) {
+          const messagesData = await messagesRes.json();
+          setMessages(messagesData);
+        }
+
+        // Find friend information in user list
+        const chatsRes = await fetch("/api/chats");
+        if (chatsRes.ok) {
+          const chatsData = await chatsRes.json();
+          const activeChat = chatsData.find(c => c.friend.id === recipientId);
+          if (activeChat) {
+            setFriend(activeChat.friend);
+          }
+        }
+      } catch (err) {
+        console.error("Error initializing chat window:", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    initChat();
+  }, [recipientId]);
+
+  // Socket Connection and logic
+  useEffect(() => {
+    const socketUrl = (typeof window !== "undefined" && window.location.hostname === "localhost")
+      ? "http://localhost:3001"
+      : (process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:3001");
+    const newSocket = io(socketUrl, {
+      transports: ["websocket"]
+    });
+    setSocket(newSocket);
+
+    newSocket.on("connect", () => {
+      console.log("Chat window connected to socket server");
+      newSocket.emit("user-online", user.id);
+    });
+
+    newSocket.on("direct-message-received", (message) => {
+      // Add message if it belongs to this conversation
+      if (message.senderId === recipientId && message.receiverId === user.id) {
+        setMessages((prev) => [...prev, message]);
+      }
+    });
+
+    return () => {
+      newSocket.disconnect();
+    };
+  }, [user.id, recipientId]);
+
+  // Auto scroll to bottom
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  const handleSendMessage = async (e) => {
+    if (e) e.preventDefault();
+    if (!inputText.trim() || sending) return;
+
+    setSending(true);
+    const text = inputText;
+    setInputText("");
+
+    try {
+      const res = await fetch(`/api/chats/${recipientId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: text }),
+      });
+
+      if (res.ok) {
+        const message = await res.json();
+        setMessages((prev) => [...prev, message]);
+
+        // Emit real-time message via socket
+        if (socket) {
+          socket.emit("send-direct-message", { recipientId, message });
+        }
+      }
+    } catch (err) {
+      console.error("Failed to send message:", err);
+      setInputText(text); // Restore text in case of failure
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const handleSendGameInvite = async (mode) => {
+    if (creatingGame) return;
+    setCreatingGame(true);
+    setShowAttachmentMenu(false);
+
+    try {
+      // 1. Create a game invitation via API
+      const gameRes = await fetch("/api/games", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ receiverId: recipientId, mode }),
+      });
+
+      if (!gameRes.ok) throw new Error("Failed to create game");
+      const gameData = await gameRes.json();
+
+      // 2. Save it as a Direct Message in database
+      const inviteText = mode === "MEMORY" 
+        ? "Challenged you to play Emoji Memory Match! 🧩"
+        : "Challenged you to play 1v1 Grid Battleship! 🎯";
+
+      const msgRes = await fetch(`/api/chats/${recipientId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          content: inviteText,
+          isGameInvite: true,
+          inviteGameId: gameData.gameId,
+          inviteMode: mode
+        }),
+      });
+
+      if (msgRes.ok) {
+        const message = await msgRes.json();
+        setMessages((prev) => [...prev, message]);
+
+        // 3. Emit real-time DM socket event
+        if (socket) {
+          socket.emit("send-direct-message", { recipientId, message });
+          
+          // Also trigger live push invite alert event for real-time online dashboard popup
+          socket.emit("send-invite", {
+            senderId: user.id,
+            senderName: user.name || user.email.split("@")[0],
+            receiverId: recipientId,
+            gameId: gameData.gameId,
+            mode
+          });
+        }
+      }
+    } catch (err) {
+      console.error("Failed to send game invite:", err);
+    } finally {
+      setCreatingGame(false);
+    }
+  };
+
+  const getInitials = (name, email) => {
+    if (name) {
+      return name.split(" ").map(n => n[0]).join("").toUpperCase().substring(0, 2);
+    }
+    return email.substring(0, 2).toUpperCase();
+  };
+
+  const getAvatarGradient = (id) => {
+    const gradients = [
+      "from-pink-500 to-rose-500",
+      "from-purple-500 to-indigo-500",
+      "from-blue-500 to-cyan-500",
+      "from-teal-500 to-emerald-500",
+      "from-amber-500 to-orange-500",
+    ];
+    const index = id ? id.charCodeAt(0) % gradients.length : 0;
+    return gradients[index];
+  };
+
+  return (
+    <div className="min-h-screen flex flex-col bg-background max-w-md mx-auto relative border-x border-outline-variant/10 shadow-2xl">
+      {/* Header */}
+      <header className="sticky top-0 z-30 bg-surface-container-lowest/80 backdrop-blur-xl border-b border-outline-variant/20 px-4 py-3 flex items-center space-x-3">
+        <button
+          onClick={() => router.push("/chats")}
+          className="w-8 h-8 rounded-full bg-surface-container/50 flex items-center justify-center text-on-surface hover:bg-surface-container transition-colors cursor-pointer"
+        >
+          <span className="material-symbols-outlined text-[20px]">arrow_back</span>
+        </button>
+
+        {friend ? (
+          <>
+            <div className="relative shrink-0">
+              <div className={`w-9 h-9 rounded-full bg-gradient-to-tr ${getAvatarGradient(friend.id)} flex items-center justify-center text-white font-extrabold text-xs shadow-md`}>
+                {getInitials(friend.name, friend.email)}
+              </div>
+              {friend.isOnline && (
+                <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-success border-2 border-background rounded-full shadow-sm"></span>
+              )}
+            </div>
+            <div className="flex-1 min-w-0">
+              <h3 className="font-display font-bold text-sm text-on-surface truncate leading-tight">
+                {friend.name || friend.email.split("@")[0]}
+              </h3>
+              <p className="text-[10px] text-outline leading-none mt-0.5">
+                {friend.isOnline ? "Online" : "Offline"}
+              </p>
+            </div>
+          </>
+        ) : (
+          <div className="flex-1 min-w-0 animate-pulse flex items-center space-x-2">
+            <div className="w-9 h-9 bg-surface-container rounded-full"></div>
+            <div className="space-y-1">
+              <div className="h-3 bg-surface-container rounded w-24"></div>
+              <div className="h-2 bg-surface-container rounded w-12"></div>
+            </div>
+          </div>
+        )}
+
+        <button 
+          onClick={() => handleSendGameInvite("BATTLE")}
+          disabled={creatingGame}
+          className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center hover:bg-primary/20 transition-colors cursor-pointer active-scale"
+          title="Quick Invite to Battle"
+        >
+          <span className="material-symbols-outlined text-[18px]">sports_esports</span>
+        </button>
+      </header>
+
+      {/* Message Window Area */}
+      <main className="flex-1 overflow-y-auto px-4 py-4 space-y-4 bg-surface-container/10 relative">
+        {loading ? (
+          <div className="space-y-4 py-4">
+            <div className="flex justify-start">
+              <div className="bg-surface-container h-10 w-2/3 rounded-2xl rounded-tl-none animate-pulse"></div>
+            </div>
+            <div className="flex justify-end">
+              <div className="bg-primary/20 h-14 w-1/2 rounded-2xl rounded-tr-none animate-pulse"></div>
+            </div>
+            <div className="flex justify-start">
+              <div className="bg-surface-container h-8 w-1/3 rounded-2xl rounded-tl-none animate-pulse"></div>
+            </div>
+          </div>
+        ) : messages.length === 0 ? (
+          <div className="flex flex-col items-center justify-center text-center py-20 px-6">
+            <div className="w-12 h-12 rounded-full bg-surface-container flex items-center justify-center text-outline mb-3">
+              <span className="material-symbols-outlined text-[24px]">chat</span>
+            </div>
+            <p className="text-on-surface-variant text-xs max-w-[200px]">
+              No messages yet. Type below to say hi or tap the Quick Invite button above!
+            </p>
+          </div>
+        ) : (
+          messages.map((message) => {
+            const isMe = message.senderId === user.id;
+            const timeStr = new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+            if (message.isGameInvite) {
+              const inviteMode = message.inviteMode || "BATTLE";
+              return (
+                <div key={message.id} className={`flex ${isMe ? "justify-end" : "justify-start"}`}>
+                  <div className="w-64 bg-gradient-to-tr from-surface-container-lowest to-surface-container border border-outline-variant/30 rounded-2xl p-4 shadow-md relative overflow-hidden group">
+                    {/* Mode logo overlay */}
+                    <div className="absolute -top-3 -right-3 text-on-surface/5 group-hover:scale-110 transition-transform">
+                      <span className="material-symbols-outlined text-[64px]">
+                        {inviteMode === "MEMORY" ? "extension" : "grid_view"}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center space-x-2.5 mb-2 relative">
+                      <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
+                        <span className="material-symbols-outlined text-[20px]">
+                          {inviteMode === "MEMORY" ? "extension" : "grid_view"}
+                        </span>
+                      </div>
+                      <div>
+                        <h5 className="font-display font-extrabold text-xs text-on-surface">
+                          {inviteMode === "MEMORY" ? "Memory Match Challenge 🧩" : "Battle Grid Challenge 🎮"}
+                        </h5>
+                        <p className="text-[9px] text-outline uppercase tracking-wider font-semibold">1v1 Mode</p>
+                      </div>
+                    </div>
+
+                    <p className="text-xs text-on-surface-variant mb-4 pr-6 leading-relaxed">
+                      {isMe ? "You challenged them to a match!" : "Challenged you to a match!"}
+                    </p>
+
+                    <div className="flex items-center justify-between">
+                      <a
+                        href={`/game/${message.inviteGameId}`}
+                        className="px-3.5 py-1.5 bg-primary text-white text-xs font-bold rounded-xl active-scale transition-transform cursor-pointer inline-flex items-center"
+                      >
+                        Join Match
+                        <span className="material-symbols-outlined text-[14px] ml-1">play_arrow</span>
+                      </a>
+                      <span className="text-[9px] text-outline">{timeStr}</span>
+                    </div>
+                  </div>
+                </div>
+              );
+            }
+
+            return (
+              <div key={message.id} className={`flex ${isMe ? "justify-end" : "justify-start"}`}>
+                <div
+                  className={`max-w-[75%] px-4 py-2.5 rounded-2xl shadow-sm relative ${
+                    isMe
+                      ? "bg-primary text-white rounded-tr-none"
+                      : "bg-surface-container-lowest text-on-surface border border-outline-variant/10 rounded-tl-none"
+                  }`}
+                >
+                  <p className="text-xs leading-relaxed break-words">{message.content}</p>
+                  <span className={`text-[8px] block text-right mt-1.5 select-none ${isMe ? "text-white/60" : "text-outline"}`}>
+                    {timeStr}
+                  </span>
+                </div>
+              </div>
+            );
+          })
+        )}
+        <div ref={messagesEndRef} />
+      </main>
+
+      {/* Attachment Panel Sheet */}
+      {showAttachmentMenu && (
+        <div className="absolute bottom-[64px] left-0 w-full bg-surface-container-lowest border-t border-outline-variant/20 rounded-t-3xl shadow-[0px_-8px_24px_rgba(0,0,0,0.15)] z-20 p-5 transition-all duration-300 animate-slide-up">
+          <div className="flex justify-between items-center mb-4">
+            <h4 className="font-display font-extrabold text-sm text-on-surface">Choose Game Mode</h4>
+            <button
+              onClick={() => setShowAttachmentMenu(false)}
+              className="w-7 h-7 rounded-full bg-surface-container flex items-center justify-center text-outline cursor-pointer"
+            >
+              <span className="material-symbols-outlined text-[16px]">close</span>
+            </button>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            {/* Battle Grid */}
+            <button
+              onClick={() => handleSendGameInvite("BATTLE")}
+              disabled={creatingGame}
+              className="flex flex-col items-center justify-center p-4 bg-surface-container rounded-2xl hover:bg-primary/5 active-scale cursor-pointer transition-all border border-outline-variant/10 text-center"
+            >
+              <div className="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center mb-3">
+                <span className="material-symbols-outlined text-[28px]">grid_view</span>
+              </div>
+              <span className="font-display font-extrabold text-xs text-on-surface mb-0.5">Battle Grid</span>
+              <span className="text-[9px] text-outline leading-tight">8x8 Grid Arena</span>
+            </button>
+
+            {/* Memory Match */}
+            <button
+              onClick={() => handleSendGameInvite("MEMORY")}
+              disabled={creatingGame}
+              className="flex flex-col items-center justify-center p-4 bg-surface-container rounded-2xl hover:bg-secondary/5 active-scale cursor-pointer transition-all border border-outline-variant/10 text-center"
+            >
+              <div className="w-12 h-12 rounded-full bg-secondary/10 text-secondary flex items-center justify-center mb-3">
+                <span className="material-symbols-outlined text-[28px]">extension</span>
+              </div>
+              <span className="font-display font-extrabold text-xs text-on-surface mb-0.5">Memory Match</span>
+              <span className="text-[9px] text-outline leading-tight">Emoji card pairing</span>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Input panel bar */}
+      <footer className="p-3 bg-surface-container-lowest border-t border-outline-variant/20 flex items-center space-x-2 shrink-0">
+        <button
+          onClick={() => setShowAttachmentMenu(!showAttachmentMenu)}
+          className={`w-9 h-9 rounded-full flex items-center justify-center transition-all cursor-pointer ${
+            showAttachmentMenu ? "bg-primary text-white rotate-45" : "bg-surface-container text-on-surface-variant hover:bg-surface-container-high"
+          }`}
+          title="Attach Game Invite"
+        >
+          <span className="material-symbols-outlined text-[22px]">add</span>
+        </button>
+
+        <form onSubmit={handleSendMessage} className="flex-1 flex items-center space-x-2">
+          <input
+            type="text"
+            placeholder="Type a message..."
+            value={inputText}
+            onChange={(e) => setInputText(e.target.value)}
+            disabled={sending || creatingGame}
+            className="flex-1 bg-surface-container rounded-full px-4 py-2 text-sm text-on-surface placeholder-outline border-none focus:outline-none focus:ring-1 focus:ring-primary/20 transition-all"
+          />
+          <button
+            type="submit"
+            disabled={!inputText.trim() || sending}
+            className="w-9 h-9 rounded-full bg-primary text-white flex items-center justify-center hover:bg-primary-high active-scale transition-all disabled:opacity-50 disabled:scale-100 cursor-pointer"
+          >
+            <span className="material-symbols-outlined text-[18px]">send</span>
+          </button>
+        </form>
+      </footer>
+    </div>
+  );
+}

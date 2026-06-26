@@ -50,6 +50,13 @@ export default function DashboardClient({ user }) {
 
   useEffect(() => {
     fetchData();
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const tab = params.get("tab");
+      if (tab && ["home", "friends", "history", "profile"].includes(tab)) {
+        setActiveTab(tab);
+      }
+    }
   }, []);
 
   // Socket Connection and logic
@@ -442,6 +449,30 @@ export default function DashboardClient({ user }) {
                     </div>
                   </div>
                 </div>
+
+                {/* Chat with Friends Feature Banner */}
+                <section className="mb-6">
+                  <div className="bg-gradient-to-tr from-primary to-secondary p-5 rounded-2xl text-white relative overflow-hidden card-shadow group">
+                    <div className="absolute -top-12 -right-12 w-32 h-32 bg-white/10 rounded-full blur-2xl group-hover:scale-125 transition-transform duration-500"></div>
+                    <div className="absolute -bottom-12 -left-12 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
+
+                    <div className="relative flex items-center justify-between gap-4">
+                      <div className="flex-1">
+                        <span className="bg-white/20 text-white text-[9px] font-bold px-2 py-0.5 rounded-full mb-2 inline-block uppercase tracking-wider">New Feature</span>
+                        <h4 className="font-display font-extrabold text-base mb-1">Direct Chat & Invites</h4>
+                        <p className="text-white/80 text-xs leading-relaxed max-w-[240px]">
+                          Chat in real-time with your squad and challenge them directly from your chat conversation logs!
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => router.push("/chats")}
+                        className="w-12 h-12 rounded-2xl bg-white text-primary flex items-center justify-center active-scale transition-transform cursor-pointer shadow-lg hover:shadow-xl shrink-0"
+                      >
+                        <span className="material-symbols-outlined text-[24px] font-bold">chat</span>
+                      </button>
+                    </div>
+                  </div>
+                </section>
 
                 {/* Recent Activity / News Section */}
                 <section className="pb-10">
@@ -846,15 +877,13 @@ export default function DashboardClient({ user }) {
           {activeTab === "friends" && <span className="absolute bottom-1 w-1.5 h-1.5 bg-primary rounded-full"></span>}
         </button>
 
-        {/* Friends */}
+        {/* Chats */}
         <button 
-          onClick={() => setActiveTab("friends")}
-          className={`flex flex-col items-center justify-center flex-1 h-full relative cursor-pointer transition-all duration-150 active-scale ${
-            activeTab === "friends" ? "text-primary font-extrabold" : "text-on-surface-variant hover:text-primary-container"
-          }`}
+          onClick={() => router.push("/chats")}
+          className="flex flex-col items-center justify-center flex-1 h-full relative cursor-pointer transition-all duration-150 active-scale text-on-surface-variant hover:text-primary-container"
         >
-          <span className="material-symbols-outlined text-[24px]" style={{ fontVariationSettings: activeTab === "friends" ? "'FILL' 1" : "" }}>group</span>
-          <span className="font-display text-[10px] mt-0.5">Friends</span>
+          <span className="material-symbols-outlined text-[24px]">chat</span>
+          <span className="font-display text-[10px] mt-0.5">Chats</span>
         </button>
 
         {/* History */}
