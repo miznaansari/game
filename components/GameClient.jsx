@@ -1234,12 +1234,30 @@ export default function GameClient({ game, user, initialMessages }) {
                 }
               </p>
 
-              <button
-                onClick={() => router.push("/")}
-                className="w-full h-12 bg-indigo-600 hover:bg-indigo-500 text-white font-display font-extrabold text-sm rounded-xl active-scale shadow-sm cursor-pointer mt-4 transition"
-              >
-                Back to Lobby
-              </button>
+              <div className="w-full flex flex-col gap-2.5 mt-4">
+                <button
+                  onClick={() => router.push("/")}
+                  className="w-full h-12 bg-indigo-600 hover:bg-indigo-500 text-white font-display font-extrabold text-sm rounded-xl active-scale shadow-sm cursor-pointer transition"
+                >
+                  Back to Lobby
+                </button>
+
+                {opponent && (
+                  <button
+                    onClick={() => router.push(`/chats/${opponent.id}`)}
+                    className={`w-full h-12 flex items-center justify-center gap-2 font-display font-extrabold text-sm rounded-xl active-scale shadow-sm cursor-pointer transition border-2 ${
+                      gameState.winnerId === user.id
+                        ? "bg-amber-50 border-amber-300 text-amber-700 hover:bg-amber-100"
+                        : gameState.winnerId === null
+                        ? "bg-slate-50 border-slate-300 text-slate-700 hover:bg-slate-100"
+                        : "bg-rose-50 border-rose-300 text-rose-700 hover:bg-rose-100"
+                    }`}
+                  >
+                    <span className="material-symbols-outlined text-[18px]">chat</span>
+                    Chat with {opponent.name || opponent.email?.split("@")[0] || "Opponent"}
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         )}
