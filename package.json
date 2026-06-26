@@ -1,6 +1,6 @@
 {
   "name": "game",
-  "version": "0.1.23",
+  "version": "0.1.24",
   "private": true,
   "scripts": {
     "dev": "concurrently \"next dev\" \"node socket/socket-server.js\"",
