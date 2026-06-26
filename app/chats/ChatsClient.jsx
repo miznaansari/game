@@ -238,6 +238,16 @@ export default function ChatsClient({ user }) {
                           <span className="material-symbols-outlined text-[16px] mr-1">sports_esports</span>
                           🎮 Game Challenge
                         </span>
+                      ) : item.lastMessage?.content?.startsWith("[sticker:") ? (
+                        <span className="flex items-center text-secondary font-medium">
+                          <span className="material-symbols-outlined text-[16px] mr-1">sentiment_satisfied</span>
+                          [Sticker]
+                        </span>
+                      ) : item.lastMessage?.content?.startsWith("[gif:") ? (
+                        <span className="flex items-center text-secondary font-medium">
+                          <span className="material-symbols-outlined text-[16px] mr-1">gif</span>
+                          [GIF]
+                        </span>
                       ) : (
                         item.lastMessage?.content || <span className="text-outline italic">Tap to start chatting</span>
                       )}

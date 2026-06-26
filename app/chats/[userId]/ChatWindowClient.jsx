@@ -19,6 +19,137 @@ export default function ChatWindowClient({ user, recipientId }) {
   const scrollContainerRef = useRef(null);
   const isInitialLoad = useRef(true);
 
+  const [showEmojiMenu, setShowEmojiMenu] = useState(false);
+  const [emojiTab, setEmojiTab] = useState("emojis"); // "emojis" | "stickers" | "gifs"
+  const [gifSearchQuery, setGifSearchQuery] = useState("");
+  const [gifs, setGifs] = useState([]);
+  const [gifLoading, setGifLoading] = useState(false);
+
+  const EMOJIS = [
+    "😀", "😂", "🤣", "😍", "🥰", "😘", "😜", "😎", "🤩", "🥳", 
+    "😭", "😡", "😱", "🤯", "😴", "💩", "🔥", "✨", "🎉", "💯", 
+    "👍", "👎", "❤️", "💔", "🎮", "🏆", "👾", "🧩", "🎯", "🎲", 
+    "🍕", "🍺"
+  ];
+
+  const STICKERS = [
+    { code: "gg", label: "GG WP", gradient: "from-[#00c6ff] to-[#0072ff]" },
+    { code: "noob", label: "NOOB!", gradient: "from-[#f857a6] to-[#ff5858]" },
+    { code: "victory", label: "🏆 Victory", gradient: "from-[#FFE000] to-[#799F0C]" },
+    { code: "rage", label: "💥 RAGE!", gradient: "from-[#e52d27] to-[#b31217]" },
+    { code: "op", label: "⭐ OP!", gradient: "from-[#f4c4f3] to-[#fc67fa]" },
+    { code: "omg", label: "😲 OMG", gradient: "from-[#11998e] to-[#38ef7d]" }
+  ];
+
+  // Load GIFs from GIPHY
+  useEffect(() => {
+    if (emojiTab !== "gifs") return;
+
+    let active = true;
+    const fetchGifs = async () => {
+      setGifLoading(true);
+      try {
+        const query = gifSearchQuery.trim();
+        const url = query
+          ? `https://api.giphy.com/v1/gifs/search?api_key=dc6zaTOxFJmzC&q=${encodeURIComponent(query)}&limit=12&rating=g`
+          : `https://api.giphy.com/v1/gifs/trending?api_key=dc6zaTOxFJmzC&limit=12&rating=g`;
+
+        const res = await fetch(url);
+        if (res.ok && active) {
+          const data = await res.json();
+          if (data.data) {
+            setGifs(data.data);
+          }
+        }
+      } catch (err) {
+        console.error("Giphy API fetch failed:", err);
+      } finally {
+        if (active) setGifLoading(false);
+      }
+    };
+
+    const debounce = setTimeout(fetchGifs, gifSearchQuery ? 500 : 0);
+    return () => {
+      active = false;
+      clearTimeout(debounce);
+    };
+  }, [gifSearchQuery, emojiTab]);
+
+  const handleSendSticker = async (code) => {
+    setShowEmojiMenu(false);
+    try {
+      const msgRes = await fetch(`/api/chats/${recipientId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: `[sticker:${code}]` }),
+      });
+
+      if (msgRes.ok) {
+        const message = await msgRes.json();
+        setMessages((prev) => [...prev, message]);
+        if (socket) {
+          socket.emit("send-direct-message", { recipientId, message });
+        }
+      }
+    } catch (err) {
+      console.error("Error sending sticker:", err);
+    }
+  };
+
+  const handleSendGif = async (url) => {
+    setShowEmojiMenu(false);
+    try {
+      const msgRes = await fetch(`/api/chats/${recipientId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: `[gif:${url}]` }),
+      });
+
+      if (msgRes.ok) {
+        const message = await msgRes.json();
+        setMessages((prev) => [...prev, message]);
+        if (socket) {
+          socket.emit("send-direct-message", { recipientId, message });
+        }
+      }
+    } catch (err) {
+      console.error("Error sending GIF:", err);
+    }
+  };
+
+  const renderSticker = (message, code, isMe, timeStr) => {
+    const sticker = STICKERS.find((s) => s.code === code) || {
+      label: code.toUpperCase(),
+      gradient: "from-primary to-secondary"
+    };
+
+    return (
+      <div key={message.id} className={`flex ${isMe ? "justify-end" : "justify-start"}`}>
+        <div className={`relative max-w-[60%] rounded-3xl overflow-hidden card-shadow p-0.5 bg-gradient-to-tr ${sticker.gradient}`}>
+          <div className="bg-black/15 rounded-[22px] px-6 py-4 flex flex-col items-center justify-center min-w-[120px]">
+            <span className={`font-display text-lg font-black uppercase tracking-wider text-white ${code === "noob" ? "animate-bounce" : ""}`}>
+              {sticker.label}
+            </span>
+            <span className="text-[7px] text-white/70 mt-2 block self-end select-none">{timeStr}</span>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderGif = (message, url, isMe, timeStr) => {
+    return (
+      <div key={message.id} className={`flex ${isMe ? "justify-end" : "justify-start"}`}>
+        <div className="max-w-[70%] rounded-2xl overflow-hidden card-shadow bg-surface-container relative group border border-outline-variant/10">
+          <img src={url} alt="GIF" className="w-full h-auto max-h-48 object-contain" />
+          <div className="absolute bottom-1 right-2 bg-black/40 px-1.5 py-0.5 rounded text-[8px] text-white/90 select-none">
+            {timeStr}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   // Load chat user details and history
   useEffect(() => {
     async function initChat() {
@@ -350,6 +481,19 @@ export default function ChatWindowClient({ user, recipientId }) {
               );
             }
 
+            const isSticker = message.content?.startsWith("[sticker:") && message.content?.endsWith("]");
+            const isGif = message.content?.startsWith("[gif:") && message.content?.endsWith("]");
+
+            if (isSticker) {
+              const stickerCode = message.content.slice(9, -1);
+              return renderSticker(message, stickerCode, isMe, timeStr);
+            }
+
+            if (isGif) {
+              const gifUrl = message.content.slice(5, -1);
+              return renderGif(message, gifUrl, isMe, timeStr);
+            }
+
             return (
               <div key={message.id} className={`flex ${isMe ? "justify-end" : "justify-start"}`}>
                 <div
@@ -413,16 +557,157 @@ export default function ChatWindowClient({ user, recipientId }) {
         </div>
       )}
 
+      {/* Emoji / Sticker / GIF Sheet */}
+      {showEmojiMenu && (
+        <div className="absolute bottom-[64px] left-0 w-full bg-surface-container-lowest border-t border-outline-variant/20 rounded-t-3xl shadow-[0px_-8px_24px_rgba(0,0,0,0.15)] z-20 flex flex-col h-[280px] animate-slide-up">
+          {/* Header tabs */}
+          <div className="flex items-center justify-between border-b border-outline-variant/20 px-4 py-2 shrink-0">
+            <div className="flex space-x-4">
+              <button
+                type="button"
+                onClick={() => setEmojiTab("emojis")}
+                className={`text-xs font-bold py-1 border-b-2 transition-colors ${
+                  emojiTab === "emojis" ? "border-primary text-primary" : "border-transparent text-outline"
+                }`}
+              >
+                Emojis
+              </button>
+              <button
+                type="button"
+                onClick={() => setEmojiTab("stickers")}
+                className={`text-xs font-bold py-1 border-b-2 transition-colors ${
+                  emojiTab === "stickers" ? "border-primary text-primary" : "border-transparent text-outline"
+                }`}
+              >
+                Stickers
+              </button>
+              <button
+                type="button"
+                onClick={() => setEmojiTab("gifs")}
+                className={`text-xs font-bold py-1 border-b-2 transition-colors ${
+                  emojiTab === "gifs" ? "border-primary text-primary" : "border-transparent text-outline"
+                }`}
+              >
+                GIFs
+              </button>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowEmojiMenu(false)}
+              className="w-7 h-7 rounded-full bg-surface-container flex items-center justify-center text-outline cursor-pointer"
+            >
+              <span className="material-symbols-outlined text-[16px]">close</span>
+            </button>
+          </div>
+
+          {/* Tab Content */}
+          <div className="flex-1 overflow-y-auto p-3">
+            {emojiTab === "emojis" && (
+              <div className="grid grid-cols-8 gap-3 justify-items-center">
+                {EMOJIS.map((emoji) => (
+                  <button
+                    key={emoji}
+                    type="button"
+                    onClick={() => {
+                      setInputText((prev) => prev + emoji);
+                    }}
+                    className="text-2xl hover:scale-125 transition-transform duration-100 cursor-pointer active-scale"
+                  >
+                    {emoji}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {emojiTab === "stickers" && (
+              <div className="grid grid-cols-3 gap-3">
+                {STICKERS.map((sticker) => (
+                  <button
+                    key={sticker.code}
+                    type="button"
+                    onClick={() => handleSendSticker(sticker.code)}
+                    className={`h-16 rounded-xl bg-gradient-to-tr ${sticker.gradient} flex items-center justify-center shadow-sm hover:scale-105 active-scale transition-all border border-white/10`}
+                  >
+                    <span className="font-display font-black text-xs text-white uppercase tracking-wider">
+                      {sticker.label}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {emojiTab === "gifs" && (
+              <div className="space-y-3">
+                {/* GIF Search bar */}
+                <div className="relative flex items-center">
+                  <span className="material-symbols-outlined absolute left-3 text-outline text-[16px]">
+                    search
+                  </span>
+                  <input
+                    type="text"
+                    placeholder="Search Giphy..."
+                    value={gifSearchQuery}
+                    onChange={(e) => setGifSearchQuery(e.target.value)}
+                    className="w-full pl-9 pr-3 py-1.5 bg-surface-container rounded-xl border-none text-xs text-on-surface placeholder-outline focus:outline-none focus:ring-1 focus:ring-primary/30 transition-all"
+                  />
+                </div>
+
+                {gifLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <span className="btn-loader border-primary animate-spin" />
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-3 gap-2">
+                    {gifs.map((gif) => (
+                      <button
+                        key={gif.id}
+                        type="button"
+                        onClick={() => handleSendGif(gif.images.fixed_height.url)}
+                        className="rounded-lg overflow-hidden h-20 bg-surface-container active-scale transition-transform cursor-pointer relative group border border-outline-variant/10"
+                      >
+                        <img
+                          src={gif.images.fixed_height.url}
+                          alt="gif"
+                          className="w-full h-full object-cover"
+                        />
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Input panel bar */}
       <footer className="p-3 bg-surface-container-lowest border-t border-outline-variant/20 flex items-center space-x-2 shrink-0">
         <button
-          onClick={() => setShowAttachmentMenu(!showAttachmentMenu)}
+          type="button"
+          onClick={() => {
+            setShowAttachmentMenu(!showAttachmentMenu);
+            setShowEmojiMenu(false);
+          }}
           className={`w-9 h-9 rounded-full flex items-center justify-center transition-all cursor-pointer ${
             showAttachmentMenu ? "bg-primary text-white rotate-45" : "bg-surface-container text-on-surface-variant hover:bg-surface-container-high"
           }`}
           title="Attach Game Invite"
         >
           <span className="material-symbols-outlined text-[22px]">add</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            setShowEmojiMenu(!showEmojiMenu);
+            setShowAttachmentMenu(false);
+          }}
+          className={`w-9 h-9 rounded-full flex items-center justify-center transition-all cursor-pointer ${
+            showEmojiMenu ? "bg-primary text-white" : "bg-surface-container text-on-surface-variant hover:bg-surface-container-high"
+          }`}
+          title="Send Sticker / Emoji / GIF"
+        >
+          <span className="material-symbols-outlined text-[22px]">sentiment_satisfied</span>
         </button>
 
         <form onSubmit={handleSendMessage} className="flex-1 flex items-center space-x-2">
