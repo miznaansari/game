@@ -217,7 +217,7 @@ export default function ChatsClient({ user }) {
                       {getInitials(friend.name, friend.email)}
                     </div>
                     {friend.isOnline && (
-                      <span className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-success border-[2.5px] border-background rounded-full shadow-sm animate-pulse"></span>
+                      <span className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-500 border-[2.5px] border-background rounded-full shadow-sm"></span>
                     )}
                   </div>
 

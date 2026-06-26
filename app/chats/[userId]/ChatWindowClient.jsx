@@ -376,7 +376,7 @@ export default function ChatWindowClient({ user, recipientId }) {
                 {getInitials(friend.name, friend.email)}
               </div>
               {friend.isOnline && (
-                <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-success border-2 border-background rounded-full shadow-sm"></span>
+                <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border-2 border-background rounded-full shadow-sm"></span>
               )}
             </div>
             <div className="flex-1 min-w-0">
