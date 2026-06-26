@@ -368,7 +368,7 @@ export default function ChatWindowClient({ user, recipientId }) {
             );
           })
         )}
-        <div ref={messagesEndRef} />
+        <div ref={messagesEndRef} className="h-6 shrink-0" />
       </main>
 
       {/* Attachment Panel Sheet */}
@@ -431,6 +431,12 @@ export default function ChatWindowClient({ user, recipientId }) {
             placeholder="Type a message..."
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
+            onFocus={() => {
+              // Wait for mobile keyboard to slide up and resize viewport
+              setTimeout(() => {
+                messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+              }, 300);
+            }}
             disabled={sending || creatingGame}
             className="flex-1 bg-surface-container rounded-full px-4 py-2 text-sm text-on-surface placeholder-outline border-none focus:outline-none focus:ring-1 focus:ring-primary/20 transition-all"
           />
