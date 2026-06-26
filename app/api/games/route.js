@@ -24,7 +24,7 @@ export async function POST(request) {
       return NextResponse.json({ error: "Opponent not found" }, { status: 404 });
     }
 
-    // Generate shuffled memory grid if MEMORY mode
+    // Generate shuffled memory grid if MEMORY mode, or empty board if TICTACTOE
     let memoryGrid = null;
     if (mode === "MEMORY") {
       const emojis = ["🎮", "🎲", "👾", "🤖", "⚔️", "🛡️", "🔥", "💧", "⚡", "🌟", "🍀", "👑", "🍕", "🍔", "🎈"];
@@ -34,6 +34,8 @@ export async function POST(request) {
         [doubled[i], doubled[j]] = [doubled[j], doubled[i]];
       }
       memoryGrid = doubled;
+    } else if (mode === "TICTACTOE") {
+      memoryGrid = Array(9).fill("");
     }
 
     // Create game record
@@ -41,7 +43,7 @@ export async function POST(request) {
       data: {
         player1Id: user.id,
         player2Id: receiverId,
-        status: mode === "MEMORY" ? "PLAYING" : "SELECTING",
+        status: (mode === "MEMORY" || mode === "TICTACTOE") ? "PLAYING" : "SELECTING",
         mode,
         turn: user.id, // Player 1 starts
         ...(mode === "MEMORY" ? {
@@ -50,6 +52,9 @@ export async function POST(request) {
           memoryFlipped: [],
           player1Score: 0,
           player2Score: 0,
+        } : {}),
+        ...(mode === "TICTACTOE" ? {
+          memoryGrid,
         } : {}),
       },
     });
@@ -61,15 +66,21 @@ export async function POST(request) {
     const isOnline = isOnlineDb && isOnlineSocket;
 
     if (!isOnline) {
-      // Send push: primary = external_id (DB user ID linked via OneSignal.login()),
-      // fallback = subscription UUID stored in DB
+      let title = "1v1 Grid Battleship Invite! 🎮";
+      let message = `${user.name || user.email} invited you to play a 1v1 Grid Battleship game! 🎯`;
+      if (mode === "MEMORY") {
+        title = "1v1 Memory Match Invite! 🧩";
+        message = `${user.name || user.email} invited you to play Emoji Memory Match! 🧩`;
+      } else if (mode === "TICTACTOE") {
+        title = "1v1 Tic Tac Toe Invite! ❌⭕";
+        message = `${user.name || user.email} invited you to play Tic Tac Toe! ❌⭕`;
+      }
+
       await sendPushNotification({
         externalId: opponent.id,
         playerId: opponent.oneSignalPlayerId,
-        title: mode === "MEMORY" ? "1v1 Memory Match Invite! 🧩" : "1v1 Grid Battleship Invite! 🎮",
-        message: mode === "MEMORY"
-          ? `${user.name || user.email} invited you to play Emoji Memory Match! 🧩`
-          : `${user.name || user.email} invited you to play a 1v1 Grid Battleship game! 🎯`,
+        title,
+        message,
         url: `/game/${game.id}`,
       });
       console.log(`Push notification sent to offline opponent ${receiverId}.`);

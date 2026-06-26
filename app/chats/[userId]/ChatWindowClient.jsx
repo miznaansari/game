@@ -220,6 +220,19 @@ export default function ChatWindowClient({ user, recipientId }) {
     activeSocket.on("direct-message-received", handleMessageReceived);
     activeSocket.on("friend-status-changed", handleFriendStatusChanged);
 
+    // Query online status for recipient on load
+    activeSocket.emit("get-online-status", [recipientId], (response) => {
+      if (response[recipientId] !== undefined) {
+        setFriend((prevFriend) => {
+          if (!prevFriend) return null;
+          return {
+            ...prevFriend,
+            isOnline: response[recipientId] === "online"
+          };
+        });
+      }
+    });
+
     return () => {
       window.removeEventListener("global-direct-message-received", handleGlobalEvent);
       activeSocket.off("direct-message-received", handleMessageReceived);
@@ -299,9 +312,12 @@ export default function ChatWindowClient({ user, recipientId }) {
       const gameData = await gameRes.json();
 
       // 2. Save it as a Direct Message in database
-      const inviteText = mode === "MEMORY" 
-        ? "Challenged you to play Emoji Memory Match! 🧩"
-        : "Challenged you to play 1v1 Grid Battleship! 🎯";
+      let inviteText = "Challenged you to play 1v1 Grid Battleship! 🎯";
+      if (mode === "MEMORY") {
+        inviteText = "Challenged you to play Emoji Memory Match! 🧩";
+      } else if (mode === "TICTACTOE") {
+        inviteText = "Challenged you to play Tic Tac Toe! ❌⭕";
+      }
 
       const msgRes = await fetch(`/api/chats/${recipientId}`, {
         method: "POST",
@@ -444,19 +460,19 @@ export default function ChatWindowClient({ user, recipientId }) {
                     {/* Mode logo overlay */}
                     <div className="absolute -top-3 -right-3 text-on-surface/5 group-hover:scale-110 transition-transform">
                       <span className="material-symbols-outlined text-[64px]">
-                        {inviteMode === "MEMORY" ? "extension" : "grid_view"}
+                        {inviteMode === "MEMORY" ? "extension" : (inviteMode === "TICTACTOE" ? "grid_3x3" : "grid_view")}
                       </span>
                     </div>
 
                     <div className="flex items-center space-x-2.5 mb-2 relative">
                       <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
                         <span className="material-symbols-outlined text-[20px]">
-                          {inviteMode === "MEMORY" ? "extension" : "grid_view"}
+                          {inviteMode === "MEMORY" ? "extension" : (inviteMode === "TICTACTOE" ? "grid_3x3" : "grid_view")}
                         </span>
                       </div>
                       <div>
                         <h5 className="font-display font-extrabold text-xs text-on-surface">
-                          {inviteMode === "MEMORY" ? "Memory Match Challenge 🧩" : "Battle Grid Challenge 🎮"}
+                          {inviteMode === "MEMORY" ? "Memory Match Challenge 🧩" : (inviteMode === "TICTACTOE" ? "Tic Tac Toe Challenge ❌⭕" : "Battle Grid Challenge 🎮")}
                         </h5>
                         <p className="text-[9px] text-outline uppercase tracking-wider font-semibold">1v1 Mode</p>
                       </div>
@@ -527,31 +543,44 @@ export default function ChatWindowClient({ user, recipientId }) {
               <span className="material-symbols-outlined text-[16px]">close</span>
             </button>
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-3 gap-3">
             {/* Battle Grid */}
             <button
               onClick={() => handleSendGameInvite("BATTLE")}
               disabled={creatingGame}
-              className="flex flex-col items-center justify-center p-4 bg-surface-container rounded-2xl hover:bg-primary/5 active-scale cursor-pointer transition-all border border-outline-variant/10 text-center"
+              className="flex flex-col items-center justify-center p-3 bg-surface-container rounded-2xl hover:bg-primary/5 active-scale cursor-pointer transition-all border border-outline-variant/10 text-center"
             >
-              <div className="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center mb-3">
-                <span className="material-symbols-outlined text-[28px]">grid_view</span>
+              <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center mb-2">
+                <span className="material-symbols-outlined text-[24px]">grid_view</span>
               </div>
-              <span className="font-display font-extrabold text-xs text-on-surface mb-0.5">Battle Grid</span>
-              <span className="text-[9px] text-outline leading-tight">8x8 Grid Arena</span>
+              <span className="font-display font-extrabold text-[11px] text-on-surface mb-0.5">Battle Grid</span>
+              <span className="text-[8px] text-outline leading-tight">8x8 Grid Arena</span>
             </button>
 
             {/* Memory Match */}
             <button
               onClick={() => handleSendGameInvite("MEMORY")}
               disabled={creatingGame}
-              className="flex flex-col items-center justify-center p-4 bg-surface-container rounded-2xl hover:bg-secondary/5 active-scale cursor-pointer transition-all border border-outline-variant/10 text-center"
+              className="flex flex-col items-center justify-center p-3 bg-surface-container rounded-2xl hover:bg-secondary/5 active-scale cursor-pointer transition-all border border-outline-variant/10 text-center"
             >
-              <div className="w-12 h-12 rounded-full bg-secondary/10 text-secondary flex items-center justify-center mb-3">
-                <span className="material-symbols-outlined text-[28px]">extension</span>
+              <div className="w-10 h-10 rounded-full bg-secondary/10 text-secondary flex items-center justify-center mb-2">
+                <span className="material-symbols-outlined text-[24px]">extension</span>
               </div>
-              <span className="font-display font-extrabold text-xs text-on-surface mb-0.5">Memory Match</span>
-              <span className="text-[9px] text-outline leading-tight">Emoji card pairing</span>
+              <span className="font-display font-extrabold text-[11px] text-on-surface mb-0.5">Memory Match</span>
+              <span className="text-[8px] text-outline leading-tight font-medium">Emoji pairing</span>
+            </button>
+
+            {/* Tic Tac Toe */}
+            <button
+              onClick={() => handleSendGameInvite("TICTACTOE")}
+              disabled={creatingGame}
+              className="flex flex-col items-center justify-center p-3 bg-surface-container rounded-2xl hover:bg-amber-500/5 active-scale cursor-pointer transition-all border border-outline-variant/10 text-center"
+            >
+              <div className="w-10 h-10 rounded-full bg-amber-500/10 text-amber-600 flex items-center justify-center mb-2">
+                <span className="material-symbols-outlined text-[24px]">grid_3x3</span>
+              </div>
+              <span className="font-display font-extrabold text-[11px] text-on-surface mb-0.5">Tic Tac Toe</span>
+              <span className="text-[8px] text-outline leading-tight font-medium">3-in-a-row classic</span>
             </button>
           </div>
         </div>

@@ -28,6 +28,15 @@ export default function DashboardClient({ user }) {
   const [actionLoadingId, setActionLoadingId] = useState(null);
   const [inviteTargetId, setInviteTargetId] = useState(null);
   const [notificationsDisabled, setNotificationsDisabled] = useState(false);
+  const [currentSlide, setCurrentSlide] = useState(0);
+
+  // Auto-rotating promo banner interval
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentSlide((prev) => (prev === 0 ? 1 : 0));
+    }, 4000);
+    return () => clearInterval(timer);
+  }, []);
 
   // Check browser push notification permission status on mount & focus
   useEffect(() => {
@@ -262,7 +271,13 @@ export default function DashboardClient({ user }) {
             <div>
               <h4 className="font-display font-extrabold text-sm text-on-background">1v1 Challenge!</h4>
               <p className="text-xs text-on-surface-variant mt-0.5">
-                <span className="font-bold text-primary">{activeInvite.senderName}</span> wants to play <span className="font-extrabold text-secondary">{activeInvite.mode === "MEMORY" ? "Emoji Memory Match 🧩" : "Grid Battleship 🎯"}</span>.
+                <span className="font-bold text-primary">{activeInvite.senderName}</span> wants to play <span className="font-extrabold text-secondary">
+                  {activeInvite.mode === "MEMORY" 
+                    ? "Emoji Memory Match 🧩" 
+                    : (activeInvite.mode === "TICTACTOE" 
+                      ? "Tic Tac Toe ❌⭕" 
+                      : "Grid Battleship 🎯")}
+                </span>.
               </p>
             </div>
           </div>
@@ -329,6 +344,20 @@ export default function DashboardClient({ user }) {
                 <div className="flex-1">
                   <h4 className="font-display font-extrabold text-sm text-slate-800">Emoji Memory Match</h4>
                   <p className="text-[10px] text-slate-500 mt-0.5">Flip and match identical emoji pairs.</p>
+                </div>
+              </button>
+
+              {/* Option 3: Tic Tac Toe */}
+              <button
+                onClick={() => handleInviteToGame(inviteTargetId, "TICTACTOE")}
+                className="flex items-center gap-3 p-4 rounded-2xl border-2 border-slate-100 hover:border-amber-500/40 bg-slate-50/50 hover:bg-amber-50/40 text-left transition active-scale cursor-pointer w-full"
+              >
+                <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center flex-shrink-0">
+                  <span className="material-symbols-outlined text-[24px]">grid_3x3</span>
+                </div>
+                <div className="flex-1">
+                  <h4 className="font-display font-extrabold text-sm text-slate-800">Tic Tac Toe</h4>
+                  <p className="text-[10px] text-slate-500 mt-0.5">Place X and O in 3-in-a-row classic match.</p>
                 </div>
               </button>
             </div>
@@ -516,27 +545,67 @@ export default function DashboardClient({ user }) {
                   </div>
                 </div>
 
-                {/* Chat with Friends Feature Banner */}
-                <section className="mb-6">
-                  <div className="bg-gradient-to-tr from-primary to-secondary p-5 rounded-2xl text-white relative overflow-hidden card-shadow group">
-                    <div className="absolute -top-12 -right-12 w-32 h-32 bg-white/10 rounded-full blur-2xl group-hover:scale-125 transition-transform duration-500"></div>
-                    <div className="absolute -bottom-12 -left-12 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
-
-                    <div className="relative flex items-center justify-between gap-4">
-                      <div className="flex-1">
-                        <span className="bg-white/20 text-white text-[9px] font-bold px-2 py-0.5 rounded-full mb-2 inline-block uppercase tracking-wider">New Feature</span>
-                        <h4 className="font-display font-extrabold text-base mb-1">Direct Chat & Invites</h4>
-                        <p className="text-white/80 text-xs leading-relaxed max-w-[240px]">
-                          Chat in real-time with your squad and challenge them directly from your chat conversation logs!
-                        </p>
+                {/* Auto-swiping Carousel Promo Banner */}
+                <section className="mb-6 overflow-hidden rounded-2xl card-shadow relative">
+                  <div 
+                    className="flex transition-transform duration-500 ease-out" 
+                    style={{ transform: `translateX(-${currentSlide * 100}%)` }}
+                  >
+                    {/* Slide 1: Direct Chat */}
+                    <div className="w-full flex-shrink-0 bg-gradient-to-tr from-indigo-600 via-purple-600 to-indigo-500 p-5 text-white relative overflow-hidden flex flex-col justify-between min-h-[140px]">
+                      <div className="absolute -top-12 -right-12 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
+                      <div className="absolute -bottom-12 -left-12 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
+                      
+                      <div className="relative flex items-center justify-between gap-4">
+                        <div className="flex-1">
+                          <span className="bg-white/20 text-white text-[9px] font-bold px-2 py-0.5 rounded-full mb-2 inline-block uppercase tracking-wider">New Feature</span>
+                          <h4 className="font-display font-extrabold text-base mb-1">Direct Chat & Invites</h4>
+                          <p className="text-white/80 text-xs leading-relaxed max-w-[240px]">
+                            Chat in real-time with your squad and challenge them directly from your chat conversation logs!
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => router.push("/chats")}
+                          className="w-12 h-12 rounded-2xl bg-white text-indigo-600 flex items-center justify-center active-scale transition-transform cursor-pointer shadow-lg hover:shadow-xl shrink-0"
+                        >
+                          <span className="material-symbols-outlined text-[24px] font-bold">chat</span>
+                        </button>
                       </div>
-                      <button
-                        onClick={() => router.push("/chats")}
-                        className="w-12 h-12 rounded-2xl bg-white text-primary flex items-center justify-center active-scale transition-transform cursor-pointer shadow-lg hover:shadow-xl shrink-0"
-                      >
-                        <span className="material-symbols-outlined text-[24px] font-bold">chat</span>
-                      </button>
                     </div>
+
+                    {/* Slide 2: Tic Tac Toe */}
+                    <div className="w-full flex-shrink-0 bg-gradient-to-tr from-amber-500 via-orange-600 to-red-500 p-5 text-white relative overflow-hidden flex flex-col justify-between min-h-[140px]">
+                      <div className="absolute -top-12 -right-12 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
+                      <div className="absolute -bottom-12 -left-12 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
+                      
+                      <div className="relative flex items-center justify-between gap-4">
+                        <div className="flex-1">
+                          <span className="bg-white/20 text-white text-[9px] font-bold px-2 py-0.5 rounded-full mb-2 inline-block uppercase tracking-wider">Hot Game</span>
+                          <h4 className="font-display font-extrabold text-base mb-1">Tic Tac Toe is Live!</h4>
+                          <p className="text-white/80 text-xs leading-relaxed max-w-[240px]">
+                            Challenge friends to a 3-in-a-row classic showdown! Instant moves and live socket sync.
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => setActiveTab("friends")}
+                          className="w-12 h-12 rounded-2xl bg-white text-orange-600 flex items-center justify-center active-scale transition-transform cursor-pointer shadow-lg hover:shadow-xl shrink-0"
+                        >
+                          <span className="material-symbols-outlined text-[24px] font-bold">grid_3x3</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Indicator Dots */}
+                  <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
+                    <button 
+                      onClick={() => setCurrentSlide(0)}
+                      className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${currentSlide === 0 ? "bg-white w-3" : "bg-white/50"}`}
+                    ></button>
+                    <button 
+                      onClick={() => setCurrentSlide(1)}
+                      className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${currentSlide === 1 ? "bg-white w-3" : "bg-white/50"}`}
+                    ></button>
                   </div>
                 </section>
 

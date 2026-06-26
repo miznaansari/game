@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { io } from "socket.io-client";
 
 export default function ChatsClient({ user }) {
   const router = useRouter();
@@ -58,8 +59,23 @@ export default function ChatsClient({ user }) {
 
   // Listen for real-time online/offline status changes of friends
   useEffect(() => {
-    const activeSocket = window.globalSocket;
-    if (!activeSocket) return;
+    if (!user?.id) return;
+
+    let activeSocket = window.globalSocket;
+    if (!activeSocket) {
+      const socketUrl = (typeof window !== "undefined" && window.location.hostname === "localhost")
+        ? "http://localhost:3001"
+        : (process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:3001");
+      activeSocket = io(socketUrl, {
+        transports: ["websocket"]
+      });
+      window.globalSocket = activeSocket;
+
+      activeSocket.on("connect", () => {
+        console.log("[SOCKET] Connected at chats list");
+        activeSocket.emit("user-online", user.id);
+      });
+    }
 
     const handleFriendStatusChanged = ({ userId, status }) => {
       setChats((prevChats) => {
@@ -79,10 +95,32 @@ export default function ChatsClient({ user }) {
     };
 
     activeSocket.on("friend-status-changed", handleFriendStatusChanged);
+
+    // Request online status for all friends currently in the chat list
+    if (chats.length > 0) {
+      const ids = chats.map(c => c.friend.id);
+      activeSocket.emit("get-online-status", ids, (response) => {
+        setChats((prevChats) => {
+          return prevChats.map((c) => {
+            if (response[c.friend.id] !== undefined) {
+              return {
+                ...c,
+                friend: {
+                  ...c.friend,
+                  isOnline: response[c.friend.id] === "online"
+                }
+              };
+            }
+            return c;
+          });
+        });
+      });
+    }
+
     return () => {
       activeSocket.off("friend-status-changed", handleFriendStatusChanged);
     };
-  }, []);
+  }, [user?.id, chats.length]);
   const getInitials = (name, email) => {
     if (name) {
       return name.split(" ").map(n => n[0]).join("").toUpperCase().substring(0, 2);

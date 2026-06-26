@@ -80,6 +80,7 @@ export default function GameClient({ game, user, initialMessages }) {
   const matchedList = parseJsonField(gameState.memoryMatched);
   const flippedList = parseJsonField(gameState.memoryFlipped);
   const memoryGridList = parseJsonField(gameState.memoryGrid);
+  const board = parseJsonField(gameState.memoryGrid) || Array(9).fill("");
 
   // Sync memory grid on load or updates
   useEffect(() => {
@@ -213,6 +214,28 @@ export default function GameClient({ game, user, initialMessages }) {
           triggerHaptic([300, 100, 300]);
         } else if (guess.isHit) {
           triggerHaptic([120, 40, 120]);
+        } else {
+          triggerHaptic(20);
+        }
+      }
+    });
+
+    newSocket.on("tictactoe-move-result", ({ game, move }) => {
+      console.log("CLIENT: tictactoe-move-result received", { game, move });
+      triggerHaptic(20);
+      if (game) {
+        setGameState(game);
+      }
+      if (move.userId === user.id) {
+        if (move.isWinner) {
+          triggerHaptic([150, 50, 150, 50, 250]);
+          triggerConfetti();
+        } else {
+          triggerHaptic(40);
+        }
+      } else {
+        if (move.isWinner) {
+          triggerHaptic([300, 100, 300]);
         } else {
           triggerHaptic(20);
         }
@@ -697,13 +720,13 @@ export default function GameClient({ game, user, initialMessages }) {
           }`}>
             <span className="material-symbols-outlined text-[18px] animate-bounce shrink-0">
               {turnToast === "YOUR TURN"
-                ? (gameState.mode === "MEMORY" ? "sports_esports" : "military_tech")
+                ? (gameState.mode === "MEMORY" ? "sports_esports" : (gameState.mode === "TICTACTOE" ? "grid_3x3" : "military_tech"))
                 : "hourglass_empty"}
             </span>
             <span className="text-[11px] tracking-wider uppercase font-black whitespace-nowrap truncate">
               {turnToast === "YOUR TURN"
-                ? (gameState.mode === "MEMORY" ? "Your Turn! 🎮" : "Your Turn! ⚔️")
-                : (gameState.mode === "MEMORY" ? "Enemy Turn! 👾" : "Enemy Turn! ⏳")}
+                ? (gameState.mode === "MEMORY" ? "Your Turn! 🎮" : (gameState.mode === "TICTACTOE" ? "Your Turn! ❌⭕" : "Your Turn! ⚔️"))
+                : (gameState.mode === "MEMORY" ? "Enemy Turn! 👾" : (gameState.mode === "TICTACTOE" ? "Enemy Turn! ⏳" : "Enemy Turn! ⏳"))}
             </span>
           </div>
         )}
@@ -1015,6 +1038,88 @@ export default function GameClient({ game, user, initialMessages }) {
                 </p>
               </div>
             </div>
+          ) : gameState.mode === "TICTACTOE" ? (
+            <div className="flex-grow flex flex-col py-2 gap-4">
+              {/* score panel */}
+              <div className="grid grid-cols-3 items-center light-card rounded-2xl p-4">
+                {/* Player 1 (You) */}
+                <div className="flex flex-col items-center">
+                  <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">You ({isPlayer1 ? "Player 1" : "Player 2"})</span>
+                  <span className="font-display font-black text-2xl text-indigo-600 mt-1">
+                    {isPlayer1 ? "❌" : "⭕"}
+                  </span>
+                </div>
+
+                {/* Turn Info */}
+                <div className="flex flex-col items-center border-x border-slate-200 py-1">
+                  <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">Tic Tac Toe</span>
+                  <span className={`font-display font-extrabold text-[11px] mt-1 text-center whitespace-nowrap ${isMyTurn ? "text-emerald-600 animate-pulse font-extrabold" : "text-slate-400 font-bold"}`}>
+                    {isMyTurn ? "👉 YOUR TURN" : "⏳ ENEMY TURN"}
+                  </span>
+                </div>
+
+                {/* Player 2 (Opponent) */}
+                <div className="flex flex-col items-center">
+                  <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider truncate max-w-[80px]">
+                    {opponent?.name || opponent?.email.split("@")[0]}
+                  </span>
+                  <span className="font-display font-black text-2xl text-pink-600 mt-1">
+                    {!isPlayer1 ? "❌" : "⭕"}
+                  </span>
+                </div>
+              </div>
+
+              {/* Tic Tac Toe Grid Area */}
+              <div className="flex-grow flex items-center justify-center py-2">
+                <div className="grid grid-cols-3 gap-3.5 w-full max-w-[280px] aspect-square mx-auto bg-slate-100 p-3.5 rounded-3xl border border-slate-200 shadow-inner">
+                  {Array.from({ length: 9 }).map((_, index) => {
+                    const cellValue = board[index] || "";
+
+                    let cellClass = "";
+                    if (cellValue === "X") {
+                      cellClass = "bg-indigo-50 border-2 border-indigo-400 text-indigo-600 shadow-sm text-3xl font-black";
+                    } else if (cellValue === "O") {
+                      cellClass = "bg-pink-50 border-2 border-pink-400 text-pink-600 shadow-sm text-3xl font-black";
+                    } else {
+                      cellClass = "bg-white border border-slate-200/80 hover:bg-slate-50 shadow-sm cursor-pointer hover:border-indigo-300 text-2xl";
+                    }
+
+                    return (
+                      <button
+                        key={index}
+                        disabled={cellValue !== "" || !isMyTurn}
+                        onClick={() => {
+                          console.log("Tic Tac Toe cell clicked:", index);
+                          if (!isMyTurn) {
+                            setWarningToast("Wait, it's the enemy's turn!");
+                            if (window.warningTimeout) clearTimeout(window.warningTimeout);
+                            window.warningTimeout = setTimeout(() => setWarningToast(null), 1500);
+                            return;
+                          }
+                          socket.emit("make-tictactoe-move", {
+                            gameId: gameState.id,
+                            userId: user.id,
+                            cellIndex: index,
+                          });
+                        }}
+                        className={`aspect-square rounded-2xl flex items-center justify-center transition-all duration-200 font-display ${cellClass}`}
+                      >
+                        {cellValue}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Instructions banner */}
+              <div className="bg-slate-50 border border-slate-200/60 rounded-xl p-3 text-center">
+                <p className="text-[10px] text-slate-500 font-semibold leading-normal">
+                  {isMyTurn
+                    ? "Your Turn! Tap any empty cell to place your symbol. Align 3 to win!"
+                    : "Enemy is thinking... Plan your next move!"}
+                </p>
+              </div>
+            </div>
           ) : (
             <div className="flex-grow flex flex-col py-2 gap-4">
 
@@ -1116,9 +1221,15 @@ export default function GameClient({ game, user, initialMessages }) {
                   ? "Your opponent disconnected from the arena. Victory declared by forfeit!"
                   : (gameState.mode === "MEMORY"
                     ? `Final score: ${myScore} vs ${opponentScore}`
-                    : (gameState.winnerId === user.id
-                      ? "Outstanding prediction! You successfully pinpointed all enemy blocks."
-                      : "The enemy coordinate search revealed all your secret shields first."))
+                    : (gameState.mode === "TICTACTOE"
+                      ? (gameState.winnerId === user.id
+                        ? "Victory is yours! You aligned three symbols first!"
+                        : (gameState.winnerId === null
+                          ? "It's a draw! Well played by both players."
+                          : "Defeat! Your opponent aligned three symbols first."))
+                      : (gameState.winnerId === user.id
+                        ? "Outstanding prediction! You successfully pinpointed all enemy blocks."
+                        : "The enemy coordinate search revealed all your secret shields first.")))
                 }
               </p>
 
