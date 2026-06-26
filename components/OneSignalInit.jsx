@@ -184,8 +184,8 @@ export default function OneSignalInit({ userId }) {
           to { transform: translateY(0); opacity: 1; }
         }
         @keyframes slideDown {
-          from { transform: translate(-50%, -100px); opacity: 0; }
-          to { transform: translate(-50%, 0); opacity: 1; }
+          from { transform: translateY(-100px); opacity: 0; }
+          to { transform: translateY(0); opacity: 1; }
         }
       `}} />
       
@@ -196,38 +196,40 @@ export default function OneSignalInit({ userId }) {
 
       {/* Top Middle Real-Time Notification banner */}
       {activeNotification && (
-        <div
-          onClick={() => {
-            router.push(`/chats/${activeNotification.senderId}`);
-            setActiveNotification(null);
-          }}
-          style={{ animation: "slideDown 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards" }}
-          className="fixed top-4 left-1/2 -translate-x-1/2 z-[10000] w-[92%] max-w-sm bg-surface-container-high/95 backdrop-blur-md border border-primary/20 rounded-2xl shadow-2xl p-4 flex items-center justify-between gap-3 cursor-pointer active-scale transition-all hover:bg-surface-container-highest"
-        >
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="w-9 h-9 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0">
-              <span className="material-symbols-outlined text-[20px]">
-                {activeNotification.isInvite ? "sports_esports" : "chat"}
-              </span>
-            </div>
-            <div className="min-w-0">
-              <h4 className="font-display font-extrabold text-xs text-on-surface truncate">
-                {activeNotification.isInvite ? "Game Invite Received" : `New Message from ${activeNotification.senderName}`}
-              </h4>
-              <p className="text-[11px] font-medium text-on-surface-variant truncate mt-0.5">
-                {activeNotification.content}
-              </p>
-            </div>
-          </div>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
+        <div className="fixed top-4 left-0 right-0 z-[10000] flex justify-center px-4 pointer-events-none">
+          <div
+            onClick={() => {
+              router.push(`/chats/${activeNotification.senderId}`);
               setActiveNotification(null);
             }}
-            className="w-6 h-6 rounded-full hover:bg-surface-container-highest flex items-center justify-center text-outline hover:text-on-surface transition-colors shrink-0 cursor-pointer"
+            style={{ animation: "slideDown 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards" }}
+            className="pointer-events-auto w-full max-w-sm bg-surface-container-high/95 backdrop-blur-md border border-primary/20 rounded-2xl shadow-2xl p-4 flex items-center justify-between gap-3 cursor-pointer active-scale transition-all hover:bg-surface-container-highest"
           >
-            <span className="material-symbols-outlined text-[16px]">close</span>
-          </button>
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-9 h-9 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                <span className="material-symbols-outlined text-[20px]">
+                  {activeNotification.isInvite ? "sports_esports" : "chat"}
+                </span>
+              </div>
+              <div className="min-w-0">
+                <h4 className="font-display font-extrabold text-xs text-on-surface truncate">
+                  {activeNotification.isInvite ? "Game Invite Received" : `New Message from ${activeNotification.senderName}`}
+                </h4>
+                <p className="text-[11px] font-medium text-on-surface-variant truncate mt-0.5">
+                  {activeNotification.content}
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setActiveNotification(null);
+              }}
+              className="w-6 h-6 rounded-full hover:bg-surface-container-highest flex items-center justify-center text-outline hover:text-on-surface transition-colors shrink-0 cursor-pointer"
+            >
+              <span className="material-symbols-outlined text-[16px]">close</span>
+            </button>
+          </div>
         </div>
       )}
 
