@@ -14,6 +14,9 @@ export default function ChatWindowClient({ user, recipientId }) {
   const [socket, setSocket] = useState(null);
   const [showAttachmentMenu, setShowAttachmentMenu] = useState(false);
   const [creatingGame, setCreatingGame] = useState(false);
+  const [showStatsPanel, setShowStatsPanel] = useState(false);
+  const [gamesList, setGamesList] = useState({ activeGames: [], pastGames: [] });
+  const [statsLoading, setStatsLoading] = useState(false);
 
   const messagesEndRef = useRef(null);
   const scrollContainerRef = useRef(null);
@@ -170,6 +173,13 @@ export default function ChatWindowClient({ user, recipientId }) {
             setFriend(activeChat.friend);
           }
         }
+
+        // Pre-cache games history
+        const gamesRes = await fetch("/api/games/list");
+        if (gamesRes.ok) {
+          const gamesData = await gamesRes.json();
+          setGamesList(gamesData);
+        }
       } catch (err) {
         console.error("Error initializing chat window:", err);
       } finally {
@@ -178,6 +188,27 @@ export default function ChatWindowClient({ user, recipientId }) {
     }
     initChat();
   }, [recipientId]);
+
+  const fetchGamesList = async () => {
+    setStatsLoading(true);
+    try {
+      const res = await fetch("/api/games/list");
+      if (res.ok) {
+        const data = await res.json();
+        setGamesList(data);
+      }
+    } catch (err) {
+      console.error("Failed to load games list for stats:", err);
+    } finally {
+      setStatsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (showStatsPanel) {
+      fetchGamesList();
+    }
+  }, [showStatsPanel]);
 
   // Socket Connection and logic
   useEffect(() => {
@@ -374,6 +405,34 @@ export default function ChatWindowClient({ user, recipientId }) {
     return gradients[index];
   };
 
+  // Compute Completed Games & Win/Loss stats with current friend
+  const completedGamesWithFriend = (gamesList.pastGames || []).filter(
+    (game) =>
+      (game.player1Id === user.id && game.player2Id === recipientId) ||
+      (game.player2Id === user.id && game.player1Id === recipientId)
+  );
+
+  const getStatsByMode = (mode) => {
+    const modeGames = completedGamesWithFriend.filter((g) => g.mode === mode);
+    const total = modeGames.length;
+    const wins = modeGames.filter((g) => g.winnerId === user.id).length;
+    const losses = modeGames.filter((g) => g.winnerId && g.winnerId !== user.id).length;
+    const draws = modeGames.filter((g) => !g.winnerId).length;
+    const winRate = total > 0 ? Math.round((wins / total) * 100) : 0;
+    return { total, wins, losses, draws, winRate };
+  };
+
+  const battleStats = getStatsByMode("BATTLE");
+  const memoryStats = getStatsByMode("MEMORY");
+  const tictactoeStats = getStatsByMode("TICTACTOE");
+  const wordGuessStats = getStatsByMode("WORD_GUESS");
+
+  const overallTotal = completedGamesWithFriend.length;
+  const overallWins = completedGamesWithFriend.filter((g) => g.winnerId === user.id).length;
+  const overallLosses = completedGamesWithFriend.filter((g) => g.winnerId && g.winnerId !== user.id).length;
+  const overallDraws = completedGamesWithFriend.filter((g) => !g.winnerId).length;
+  const overallWinRate = overallTotal > 0 ? Math.round((overallWins / overallTotal) * 100) : 0;
+
   return (
     <div className="h-[100dvh] flex flex-col bg-background w-full max-w-md md:max-w-lg lg:max-w-xl mx-auto relative border-x border-outline-variant/10 shadow-2xl overflow-hidden">
       {/* Header */}
@@ -421,6 +480,14 @@ export default function ChatWindowClient({ user, recipientId }) {
           title="Quick Invite to Battle"
         >
           <span className="material-symbols-outlined text-[18px]">sports_esports</span>
+        </button>
+
+        <button 
+          onClick={() => setShowStatsPanel(true)}
+          className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center hover:bg-primary/20 transition-colors cursor-pointer active-scale"
+          title="View Game Stats & History"
+        >
+          <span className="material-symbols-outlined text-[18px]">bar_chart</span>
         </button>
       </header>
 
@@ -828,6 +895,195 @@ export default function ChatWindowClient({ user, recipientId }) {
           </button>
         </form>
       </footer>
+
+      {/* Game Stats Drawer Overlay */}
+      {showStatsPanel && (
+        <div 
+          onClick={() => setShowStatsPanel(false)}
+          className="absolute inset-0 z-40 bg-black/40 backdrop-blur-xs transition-opacity duration-300"
+        />
+      )}
+      <div 
+        className={`absolute inset-0 h-full w-full bg-surface-container-lowest shadow-2xl z-50 transform transition-transform duration-300 ease-out flex flex-col ${
+          showStatsPanel ? "translate-x-0" : "translate-x-full"
+        }`}
+      >
+        {/* Drawer Header */}
+        <div className="p-4 border-b border-outline-variant/20 flex justify-between items-center bg-surface-container-low shrink-0">
+          <div className="flex items-center space-x-2">
+            <span className="material-symbols-outlined text-primary">analytics</span>
+            <h4 className="font-display font-black text-sm text-on-surface">Stats vs {friend?.name || friend?.email.split("@")[0]}</h4>
+          </div>
+          <button 
+            onClick={() => setShowStatsPanel(false)}
+            className="w-7 h-7 rounded-full bg-surface-container flex items-center justify-center text-on-surface-variant hover:bg-surface-container-high transition-colors cursor-pointer active-scale"
+          >
+            <span className="material-symbols-outlined text-[16px]">close</span>
+          </button>
+        </div>
+
+        {/* Drawer Content */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          {statsLoading ? (
+            <div className="flex flex-col items-center justify-center h-48 space-y-2">
+              <div className="w-8 h-8 rounded-full border-4 border-primary/30 border-t-primary animate-spin"></div>
+              <p className="text-xs text-outline font-bold">Loading match stats...</p>
+            </div>
+          ) : (
+            <>
+              {/* Overall Record Card */}
+              <div className="bg-gradient-to-tr from-primary/10 to-secondary/10 border border-primary/20 rounded-2xl p-4 shadow-sm relative overflow-hidden">
+                <div className="absolute top-[-10px] right-[-10px] opacity-10">
+                  <span className="material-symbols-outlined text-[64px] text-primary">military_tech</span>
+                </div>
+                <div className="relative">
+                  <span className="bg-primary/20 text-primary text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider">Overall Record</span>
+                  <div className="flex justify-between items-center mt-3">
+                    <div>
+                      <h4 className="font-display font-black text-2xl text-on-surface">{overallWins}W - {overallLosses}L</h4>
+                      <p className="text-[10px] text-outline font-semibold mt-1">Played: {overallTotal} | Draws: {overallDraws}</p>
+                    </div>
+                    <div className="w-14 h-14 rounded-full border-4 border-primary-container flex flex-col items-center justify-center bg-surface-container shadow-inner">
+                      <span className="font-display font-black text-sm text-primary">{overallWinRate}%</span>
+                      <span className="text-[7px] text-outline font-black uppercase">Win Rate</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Game-wise Stats */}
+              <div className="space-y-3">
+                <h5 className="font-display font-extrabold text-[10px] text-outline uppercase tracking-wider">Game-wise breakdown</h5>
+                
+                {/* Game 1: Battleship */}
+                <div className="bg-surface-container-low border border-outline-variant/30 rounded-xl p-3.5 flex flex-col gap-2.5">
+                  <div className="text-center font-display font-black text-xs text-indigo-600 uppercase tracking-widest pb-1.5 border-b border-outline-variant/10 flex items-center justify-center gap-1.5">
+                    <span className="material-symbols-outlined text-[16px]">target</span>
+                    Grid Battleship
+                  </div>
+                  <div className="flex justify-between items-center text-xs">
+                    <div className="w-[42%] text-left flex items-center gap-1 overflow-hidden shrink-0">
+                      <span className="font-bold text-on-surface truncate">You</span>
+                      <span className="text-[10px] text-outline font-extrabold shrink-0">({battleStats.wins})</span>
+                    </div>
+                    <div className="w-[16%] text-center font-display font-black text-xs text-primary shrink-0">
+                      {battleStats.winRate}%
+                    </div>
+                    <div className="w-[42%] text-right flex items-center justify-end gap-1 overflow-hidden shrink-0">
+                      <span className="text-[10px] text-outline font-extrabold shrink-0">({battleStats.losses})</span>
+                      <span className="font-bold text-on-surface truncate">{friend?.name || friend?.email.split("@")[0]}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Game 2: Memory */}
+                <div className="bg-surface-container-low border border-outline-variant/30 rounded-xl p-3.5 flex flex-col gap-2.5">
+                  <div className="text-center font-display font-black text-xs text-fuchsia-600 uppercase tracking-widest pb-1.5 border-b border-outline-variant/10 flex items-center justify-center gap-1.5">
+                    <span className="material-symbols-outlined text-[16px]">extension</span>
+                    Memory Match
+                  </div>
+                  <div className="flex justify-between items-center text-xs">
+                    <div className="w-[42%] text-left flex items-center gap-1 overflow-hidden shrink-0">
+                      <span className="font-bold text-on-surface truncate">You</span>
+                      <span className="text-[10px] text-outline font-extrabold shrink-0">({memoryStats.wins})</span>
+                    </div>
+                    <div className="w-[16%] text-center font-display font-black text-xs text-primary shrink-0">
+                      {memoryStats.winRate}%
+                    </div>
+                    <div className="w-[42%] text-right flex items-center justify-end gap-1 overflow-hidden shrink-0">
+                      <span className="text-[10px] text-outline font-extrabold shrink-0">({memoryStats.losses})</span>
+                      <span className="font-bold text-on-surface truncate">{friend?.name || friend?.email.split("@")[0]}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Game 3: Tic Tac Toe */}
+                <div className="bg-surface-container-low border border-outline-variant/30 rounded-xl p-3.5 flex flex-col gap-2.5">
+                  <div className="text-center font-display font-black text-xs text-amber-600 uppercase tracking-widest pb-1.5 border-b border-outline-variant/10 flex items-center justify-center gap-1.5">
+                    <span className="material-symbols-outlined text-[16px]">grid_3x3</span>
+                    Tic Tac Toe
+                  </div>
+                  <div className="flex justify-between items-center text-xs">
+                    <div className="w-[42%] text-left flex items-center gap-1 overflow-hidden shrink-0">
+                      <span className="font-bold text-on-surface truncate">You</span>
+                      <span className="text-[10px] text-outline font-extrabold shrink-0">({tictactoeStats.wins})</span>
+                    </div>
+                    <div className="w-[16%] text-center font-display font-black text-xs text-primary shrink-0">
+                      {tictactoeStats.winRate}%
+                    </div>
+                    <div className="w-[42%] text-right flex items-center justify-end gap-1 overflow-hidden shrink-0">
+                      <span className="text-[10px] text-outline font-extrabold shrink-0">({tictactoeStats.losses})</span>
+                      <span className="font-bold text-on-surface truncate">{friend?.name || friend?.email.split("@")[0]}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Game 4: Word Guess */}
+                <div className="bg-surface-container-low border border-outline-variant/30 rounded-xl p-3.5 flex flex-col gap-2.5">
+                  <div className="text-center font-display font-black text-xs text-emerald-600 uppercase tracking-widest pb-1.5 border-b border-outline-variant/10 flex items-center justify-center gap-1.5">
+                    <span className="material-symbols-outlined text-[16px]">notes</span>
+                    Word Guess
+                  </div>
+                  <div className="flex justify-between items-center text-xs">
+                    <div className="w-[42%] text-left flex items-center gap-1 overflow-hidden shrink-0">
+                      <span className="font-bold text-on-surface truncate">You</span>
+                      <span className="text-[10px] text-outline font-extrabold shrink-0">({wordGuessStats.wins})</span>
+                    </div>
+                    <div className="w-[16%] text-center font-display font-black text-xs text-primary shrink-0">
+                      {wordGuessStats.winRate}%
+                    </div>
+                    <div className="w-[42%] text-right flex items-center justify-end gap-1 overflow-hidden shrink-0">
+                      <span className="text-[10px] text-outline font-extrabold shrink-0">({wordGuessStats.losses})</span>
+                      <span className="font-bold text-on-surface truncate">{friend?.name || friend?.email.split("@")[0]}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Recent Games List */}
+              <div className="space-y-3 pt-2">
+                <h5 className="font-display font-extrabold text-[10px] text-outline uppercase tracking-wider">Recent Matches</h5>
+                {completedGamesWithFriend.length === 0 ? (
+                  <div className="text-center py-4 bg-surface-container-low/50 border border-outline-variant/20 border-dashed rounded-xl text-[11px] text-outline font-bold">
+                    No games completed yet. Challenge them!
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {completedGamesWithFriend.slice(0, 5).map((game) => {
+                      const isWinner = game.winnerId === user.id;
+                      const isDraw = !game.winnerId;
+                      
+                      return (
+                        <div key={game.id} className="flex justify-between items-center p-2.5 bg-surface-container-low border border-outline-variant/20 rounded-xl">
+                          <div className="flex items-center gap-2">
+                            <span className="material-symbols-outlined text-[16px] text-outline">
+                              {game.mode === "MEMORY" ? "extension" : (game.mode === "TICTACTOE" ? "grid_3x3" : (game.mode === "WORD_GUESS" ? "notes" : "grid_view"))}
+                            </span>
+                            <div className="flex flex-col">
+                              <span className="font-bold text-[11px] text-on-surface leading-tight">
+                                {game.mode === "MEMORY" ? "Memory Match" : (game.mode === "TICTACTOE" ? "Tic Tac Toe" : (game.mode === "WORD_GUESS" ? "Word Guess" : "Grid Battleship"))}
+                              </span>
+                              <span className="text-[8px] text-outline mt-0.5">{new Date(game.updatedAt).toLocaleDateString()}</span>
+                            </div>
+                          </div>
+                          
+                          <span className={`text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md ${
+                            isDraw 
+                              ? "bg-slate-100 text-slate-700" 
+                              : (isWinner ? "bg-emerald-50 text-emerald-700 border border-emerald-100" : "bg-rose-50 text-rose-700 border border-rose-100")
+                          }`}>
+                            {isDraw ? "Draw" : (isWinner ? "Victory" : "Defeat")}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
