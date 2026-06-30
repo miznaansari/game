@@ -56,6 +56,7 @@ export default function GameClient({ game, user, initialMessages }) {
   const parseJsonField = (field) => {
     if (!field) return [];
     if (Array.isArray(field)) return field;
+    if (typeof field === "object") return field;
     try {
       return JSON.parse(field);
     } catch (e) {
@@ -1435,11 +1436,41 @@ export default function GameClient({ game, user, initialMessages }) {
             </div>
           ) : gameState.mode === "WORD_GUESS" ? (
             <div className="flex-grow flex flex-col py-2 gap-4 overflow-y-auto max-h-[80vh]">
+              
+              {/* score and turn panel */}
+              <div className="grid grid-cols-3 items-center light-card rounded-2xl p-4 shadow-sm border border-slate-100">
+                {/* Player 1 (You) */}
+                <div className="flex flex-col items-center">
+                  <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">You (Score)</span>
+                  <span className="font-display font-black text-lg text-indigo-600 mt-1">
+                    {myScore}
+                  </span>
+                </div>
+
+                {/* Turn Info */}
+                <div className="flex flex-col items-center border-x border-slate-200 py-1">
+                  <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider font-semibold">Word Guess</span>
+                  <span className={`font-display font-extrabold text-[11px] mt-1 text-center whitespace-nowrap ${isMyTurn ? "text-emerald-600 animate-pulse font-extrabold" : "text-slate-400 font-bold"}`}>
+                    {isMyTurn ? "👉 YOUR TURN" : "⏳ ENEMY TURN"}
+                  </span>
+                </div>
+
+                {/* Player 2 (Opponent) */}
+                <div className="flex flex-col items-center">
+                  <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider truncate max-w-[80px]">
+                    {opponent?.name || opponent?.email.split("@")[0]}
+                  </span>
+                  <span className="font-display font-black text-lg text-pink-600 mt-1">
+                    {opponentScore}
+                  </span>
+                </div>
+              </div>
+
               {/* Connection Theme Banner */}
               <div className="bg-slate-50 border border-slate-200/60 rounded-2xl p-4 text-center">
-                <span className="text-[10px] text-slate-500 font-extrabold uppercase tracking-wider block">Opponent's Theme Connection Clue</span>
+                <span className="text-[10px] text-slate-500 font-extrabold uppercase tracking-wider block font-semibold">Opponent's Theme Connection Clue</span>
                 <span className="font-display font-extrabold text-sm text-indigo-600 mt-1 block">
-                  "{opponentSelections?.connection || 'No clue provided'}"
+                  {opponentSelections?.connection ? `"${opponentSelections.connection}"` : <span className="text-slate-400 italic font-normal text-xs">No clue provided yet</span>}
                 </span>
               </div>
 
@@ -1450,7 +1481,7 @@ export default function GameClient({ game, user, initialMessages }) {
                 <div className="flex flex-col gap-3">
                   <div className="text-center bg-indigo-50 border border-indigo-100 rounded-xl py-1.5 px-2">
                     <span className="text-[9px] font-black text-indigo-700 uppercase tracking-wide block">You (Guessing)</span>
-                    <span className="block text-[10px] font-bold text-slate-500 mt-0.5">{myScore} / {wordCount} Guessed</span>
+                    <span className="block text-[10px] font-bold text-slate-500 mt-0.5">{myScore} / {opponentSelections?.words?.length || wordCount} Guessed</span>
                   </div>
 
                   <div className="space-y-2.5">
@@ -1470,7 +1501,7 @@ export default function GameClient({ game, user, initialMessages }) {
 
                       return (
                         <div key={idx} className="bg-white border border-slate-200 rounded-xl p-3 shadow-sm flex flex-col gap-1.5">
-                          <div className="text-[10px] font-bold text-slate-400">Word {idx + 1} ({word.length} letters)</div>
+                          <div className="text-[10px] font-bold text-slate-400 font-semibold">Word {idx + 1} ({word.length} letters)</div>
                           <div className={`font-mono text-xs font-black tracking-widest py-1 ${isCorrect ? 'text-emerald-600 font-black' : 'text-slate-800'}`}>
                             {clueString}
                           </div>
@@ -1490,18 +1521,20 @@ export default function GameClient({ game, user, initialMessages }) {
                             >
                               <input
                                 type="text"
-                                placeholder="Guess..."
+                                placeholder={isMyTurn ? "Guess..." : "Wait turn..."}
+                                disabled={!isMyTurn}
                                 value={guessTexts[idx] || ""}
                                 onChange={(e) => setGuessTexts(prev => {
                                   const n = [...prev];
                                   n[idx] = e.target.value;
                                   return n;
                                 })}
-                                className="flex-grow min-w-0 bg-slate-50 border border-slate-200 focus:border-indigo-500 rounded-lg px-2 py-1 text-[11px] focus:outline-none font-semibold text-slate-700"
+                                className={`flex-grow min-w-0 bg-slate-50 border border-slate-200 focus:border-indigo-500 rounded-lg px-2 py-1 text-[11px] focus:outline-none font-semibold text-slate-700 ${!isMyTurn ? 'opacity-50 cursor-not-allowed bg-slate-100' : ''}`}
                               />
                               <button
                                 type="submit"
-                                className="w-7 h-7 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white flex items-center justify-center shrink-0 cursor-pointer active-scale"
+                                disabled={!isMyTurn}
+                                className={`w-7 h-7 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white flex items-center justify-center shrink-0 cursor-pointer active-scale ${!isMyTurn ? 'opacity-50 cursor-not-allowed' : ''}`}
                               >
                                 <span className="material-symbols-outlined text-[14px]">done</span>
                               </button>
@@ -1521,7 +1554,7 @@ export default function GameClient({ game, user, initialMessages }) {
                 <div className="flex flex-col gap-3">
                   <div className="text-center bg-pink-50 border border-pink-100 rounded-xl py-1.5 px-2">
                     <span className="text-[9px] font-black text-pink-700 uppercase tracking-wide block">Opponent (Guessing)</span>
-                    <span className="block text-[10px] font-bold text-slate-500 mt-0.5">{opponentScore} / {wordCount} Guessed</span>
+                    <span className="block text-[10px] font-bold text-slate-500 mt-0.5">{opponentScore} / {mySelections?.words?.length || wordCount} Guessed</span>
                   </div>
 
                   <div className="space-y-2.5">
