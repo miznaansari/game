@@ -212,8 +212,18 @@ export default function GameClient({ game, user, initialMessages }) {
     });
 
     newSocket.on("game-updated", ({ game: updatedGame, event, userId }) => {
-      // Preserve player relations from previous state (socket update omits them)
-      setGameState(prev => ({ ...updatedGame, player1: updatedGame.player1 || prev.player1, player2: updatedGame.player2 || prev.player2, winner: updatedGame.winner || prev.winner }));
+      // Preserve player relations and JSON fields from previous state
+      setGameState(prev => ({ 
+        ...prev,
+        ...updatedGame, 
+        player1: updatedGame.player1 || prev.player1, 
+        player2: updatedGame.player2 || prev.player2, 
+        winner: updatedGame.winner || prev.winner,
+        player1Selections: updatedGame.player1Selections ?? prev.player1Selections,
+        player2Selections: updatedGame.player2Selections ?? prev.player2Selections,
+        player1Guesses: updatedGame.player1Guesses ?? prev.player1Guesses,
+        player2Guesses: updatedGame.player2Guesses ?? prev.player2Guesses,
+      }));
       setFiringIndex(null);
       if (userId === user.id && event === "selection") {
         setHasLockedSelections(true);
@@ -371,13 +381,17 @@ export default function GameClient({ game, user, initialMessages }) {
       triggerHaptic(20);
       if (game) {
         setGameState(prev => ({ 
+          ...prev,
           ...game, 
           player1: game.player1 || prev.player1, 
           player2: game.player2 || prev.player2, 
-          winner: game.winner || prev.winner 
+          winner: game.winner || prev.winner,
+          // Always preserve selections so word lists never disappear
+          player1Selections: game.player1Selections ?? prev.player1Selections,
+          player2Selections: game.player2Selections ?? prev.player2Selections,
         }));
       }
-      if (result.userId === user.id) {
+      if (result && result.userId === user.id) {
         if (result.isWinner) {
           triggerHaptic([150, 50, 150, 50, 250]);
           triggerConfetti();
@@ -1437,6 +1451,14 @@ export default function GameClient({ game, user, initialMessages }) {
           ) : gameState.mode === "WORD_GUESS" ? (
             <div className="flex-grow flex flex-col py-2 gap-4 overflow-y-auto max-h-[80vh]">
               
+              {/* Guard: show loader if selections haven't synced yet */}
+              {(!opponentSelections?.words || !mySelections?.words) ? (
+                <div className="flex-grow flex flex-col items-center justify-center gap-3 text-center">
+                  <div className="radar-spinner"></div>
+                  <p className="text-xs text-slate-500 font-semibold">Loading word lists...</p>
+                </div>
+              ) : (
+                <>
               {/* score and turn panel */}
               <div className="grid grid-cols-3 items-center light-card rounded-2xl p-4 shadow-sm border border-slate-100">
                 {/* Player 1 (You) */}
@@ -1601,6 +1623,8 @@ export default function GameClient({ game, user, initialMessages }) {
                   Solve your opponent's words before they solve yours! Incorrect guesses reveal hints.
                 </p>
               </div>
+              </>
+              )}
             </div>
           ) : (
             <div className="flex-grow flex flex-col py-2 gap-4">

@@ -220,14 +220,14 @@ export default function DashboardClient({ user, defaultTab = "home" }) {
     }
   };
 
-  const handleInviteToGame = async (receiverId, mode = "BATTLE") => {
+  const handleInviteToGame = async (receiverId, mode = "BATTLE", wordCount = 5) => {
     setActionLoadingId(receiverId);
     setInviteTargetId(null);
     try {
       const res = await fetch("/api/games", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ receiverId, mode }),
+        body: JSON.stringify({ receiverId, mode, wordCount }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to send invite");
@@ -393,6 +393,31 @@ export default function DashboardClient({ user, defaultTab = "home" }) {
                   <p className="text-[10px] text-slate-500 mt-0.5">Place X and O in 3-in-a-row classic match.</p>
                 </div>
               </button>
+
+              {/* Option 4: Word Guess */}
+              <div className="flex flex-col gap-2 p-4 rounded-2xl border-2 border-slate-100 hover:border-emerald-500/40 bg-slate-50/50 hover:bg-emerald-50/30 transition">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center flex-shrink-0">
+                    <span className="material-symbols-outlined text-[24px]">notes</span>
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="font-display font-extrabold text-sm text-slate-800">Word Guess</h4>
+                    <p className="text-[10px] text-slate-500 mt-0.5">Set a chain of connected words. Guess each other's secret chain!</p>
+                  </div>
+                </div>
+                <div className="flex gap-2 mt-1">
+                  {[4, 5, 6].map((count) => (
+                    <button
+                      key={count}
+                      onClick={() => handleInviteToGame(inviteTargetId, "WORD_GUESS", count)}
+                      className="flex-1 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-display font-extrabold text-xs active-scale cursor-pointer transition shadow-sm"
+                    >
+                      {count} Words
+                    </button>
+                  ))}
+                </div>
+              </div>
+
             </div>
           </div>
         </div>
