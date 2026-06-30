@@ -318,6 +318,28 @@ io.on("connection", (socket) => {
     // Send a message indicating user joined
     io.to(roomName).emit("user-joined-room", { userId });
 
+    // Sync latest game state from DB to the re-joining client
+    try {
+      const fullGame = await prisma.game.findUnique({
+        where: { id: gameId },
+        include: {
+          player1: { select: { id: true, name: true, email: true } },
+          player2: { select: { id: true, name: true, email: true } },
+          winner: { select: { id: true, name: true, email: true } },
+        }
+      });
+      if (fullGame) {
+        socket.emit("game-updated", {
+          game: fullGame,
+          event: "sync",
+          userId,
+        });
+        console.log(`Synced game state for user ${userId} in game ${gameId}`);
+      }
+    } catch (err) {
+      console.error("Error syncing game state on join-game:", err);
+    }
+
     // Notify opponent
     try {
       const game = await prisma.game.findUnique({
