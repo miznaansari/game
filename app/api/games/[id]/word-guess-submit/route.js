@@ -43,36 +43,7 @@ export async function POST(request, { params }) {
       updateData.player2Selections = selectionData;
     }
 
-    // Check if both players have now submitted their selections
-    const hasPlayer1Submitted = isPlayer1 ? true : !!game.player1Selections;
-    const hasPlayer2Submitted = isPlayer2 ? true : !!game.player2Selections;
-
-    if (hasPlayer1Submitted && hasPlayer2Submitted) {
-      // Transition to PLAYING
-      updateData.status = "PLAYING";
-      
-      // Initialize guesses objects
-      let wordCount = 5;
-      if (game.memoryGrid) {
-        try {
-          const grid = typeof game.memoryGrid === 'string' ? JSON.parse(game.memoryGrid) : game.memoryGrid;
-          if (grid && grid.wordCount) {
-            wordCount = grid.wordCount;
-          }
-        } catch (e) {
-          // Fallback
-        }
-      }
-      
-      updateData.player1Guesses = {
-        correct: [],
-        revealedLetters: Array(wordCount).fill(1)
-      };
-      updateData.player2Guesses = {
-        correct: [],
-        revealedLetters: Array(wordCount).fill(1)
-      };
-    }
+    // Do not automatically transition to PLAYING. That will be done when they click Start Game.
 
     const updatedGame = await prisma.game.update({
       where: { id: id },

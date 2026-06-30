@@ -1111,18 +1111,50 @@ export default function GameClient({ game, user, initialMessages }) {
 
                   {/* Word Inputs */}
                   <div className="space-y-3 mt-1">
-                    {Array.from({ length: wordCount }).map((_, index) => (
-                      <div key={index} className="flex flex-col gap-1">
-                        <label className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">Word {index + 1}</label>
-                        <input
-                          type="text"
-                          placeholder={`Enter word {index + 1}...`}
-                          value={wordInputs[index]}
-                          onChange={(e) => handleWordInputChange(index, e.target.value)}
-                          className="w-full bg-white border border-slate-200 hover:border-slate-300 focus:border-indigo-500 px-4 py-2 text-sm rounded-xl focus:outline-none focus:ring-1 focus:ring-indigo-500/20 transition-all font-semibold"
-                        />
-                      </div>
-                    ))}
+                    {Array.from({ length: wordCount }).map((_, index) => {
+                      const isFirstEmpty = wordInputs.findIndex(w => !w.trim()) === index;
+                      return (
+                        <div key={index} className="flex flex-col gap-1">
+                          <label className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">Word {index + 1}</label>
+                          <input
+                            type="text"
+                            placeholder={`Enter word ${index + 1}...`}
+                            value={wordInputs[index]}
+                            onChange={(e) => handleWordInputChange(index, e.target.value)}
+                            className="w-full bg-white border border-slate-200 hover:border-slate-300 focus:border-indigo-500 px-4 py-2 text-sm rounded-xl focus:outline-none focus:ring-1 focus:ring-indigo-500/20 transition-all font-semibold"
+                          />
+                          {/* Render suggestion chips directly below the first empty slot */}
+                          {isFirstEmpty && (
+                            <div className="bg-slate-50 border border-slate-200/60 rounded-xl p-3.5 space-y-2 mt-1">
+                              <p className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider flex items-center gap-1 font-semibold">
+                                <span className="material-symbols-outlined text-[14px] text-amber-500 font-bold animate-pulse">auto_awesome</span>
+                                Gemini Suggestions
+                              </p>
+                              {loadingSuggestions ? (
+                                <div className="flex items-center gap-1.5 text-xs text-slate-500 font-medium py-1">
+                                  <span className="btn-loader mr-1 animate-spin" /> Generating suggestions...
+                                </div>
+                              ) : suggestions.length > 0 ? (
+                                <div className="flex flex-wrap gap-2">
+                                  {suggestions.map((word) => (
+                                    <button
+                                      key={word}
+                                      type="button"
+                                      onClick={() => handleSuggestionClick(word)}
+                                      className="px-3 py-1 bg-white border border-slate-200 hover:border-indigo-500 hover:text-indigo-600 rounded-full text-xs font-bold text-slate-600 transition cursor-pointer active-scale shadow-sm font-semibold"
+                                    >
+                                      + {word}
+                                    </button>
+                                  ))}
+                                </div>
+                              ) : (
+                                <p className="text-[10px] text-slate-400 italic">Type a word in the slots above to see AI suggestion chips here.</p>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
 
                     {/* Connection Input */}
                     <div className="flex flex-col gap-1">
@@ -1137,33 +1169,6 @@ export default function GameClient({ game, user, initialMessages }) {
                     </div>
                   </div>
 
-                  {/* AI Suggestions Chips */}
-                  <div className="bg-slate-50 border border-slate-200/60 rounded-xl p-3.5 space-y-2 mt-1">
-                    <p className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider flex items-center gap-1">
-                      <span className="material-symbols-outlined text-[14px] text-amber-500 font-bold animate-pulse">auto_awesome</span>
-                      Gemini Suggestions
-                    </p>
-                    {loadingSuggestions ? (
-                      <div className="flex items-center gap-1.5 text-xs text-slate-500 font-medium py-1">
-                        <span className="btn-loader mr-1 animate-spin" /> Generating suggestions...
-                      </div>
-                    ) : suggestions.length > 0 ? (
-                      <div className="flex flex-wrap gap-2">
-                        {suggestions.map((word) => (
-                          <button
-                            key={word}
-                            onClick={() => handleSuggestionClick(word)}
-                            className="px-3 py-1 bg-white border border-slate-200 hover:border-indigo-500 hover:text-indigo-600 rounded-full text-xs font-bold text-slate-600 transition cursor-pointer active-scale shadow-sm"
-                          >
-                            + {word}
-                          </button>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-[10px] text-slate-400 italic">Type a word in the slots above to see AI suggestion chips here.</p>
-                    )}
-                  </div>
-
                   <button
                     onClick={submitWordGuessSetup}
                     disabled={!wordInputs.every(w => w.trim().length > 0) || !themeInput.trim()}
@@ -1173,13 +1178,41 @@ export default function GameClient({ game, user, initialMessages }) {
                   </button>
                 </div>
               ) : (
-                <div className="light-card rounded-2xl p-8 text-center max-w-sm w-full space-y-5 flex flex-col items-center">
-                  <div className="radar-spinner mb-2"></div>
-                  <h3 className="font-display font-extrabold text-base text-slate-800">Word List Locked!</h3>
-                  <p className="text-xs text-slate-500 font-semibold leading-relaxed max-w-[240px]">
-                    Waiting for opponent to submit their word list...
-                  </p>
-                </div>
+                (() => {
+                  const isOpponentReady = opponentSetupReady || (opponentSelections && opponentSelections.words && opponentSelections.words.length > 0);
+                  if (isOpponentReady) {
+                    return (
+                      <div className="light-card rounded-2xl p-8 text-center max-w-sm w-full space-y-5 flex flex-col items-center">
+                        <div className="w-12 h-12 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600">
+                          <span className="material-symbols-outlined text-[28px] animate-pulse">check_circle</span>
+                        </div>
+                        <h3 className="font-display font-extrabold text-base text-slate-800">Both Players Ready! 🎮</h3>
+                        <p className="text-xs text-slate-500 font-semibold leading-relaxed max-w-[240px]">
+                          Word lists are locked. Press Start Game below to begin!
+                        </p>
+                        <button
+                          onClick={() => {
+                            if (socket) {
+                              socket.emit("start-word-guess-game", { gameId: gameState.id });
+                            }
+                          }}
+                          className="w-full h-12 bg-gradient-to-r from-indigo-600 to-blue-600 text-white font-display font-extrabold text-sm rounded-xl active-scale shadow-md cursor-pointer transition"
+                        >
+                          START GAME
+                        </button>
+                      </div>
+                    );
+                  }
+                  return (
+                    <div className="light-card rounded-2xl p-8 text-center max-w-sm w-full space-y-5 flex flex-col items-center">
+                      <div className="radar-spinner mb-2"></div>
+                      <h3 className="font-display font-extrabold text-base text-slate-800">Word List Locked!</h3>
+                      <p className="text-xs text-slate-500 font-semibold leading-relaxed max-w-[240px]">
+                        Waiting for opponent to submit their word list...
+                      </p>
+                    </div>
+                  );
+                })()
               )}
             </div>
           ) : (
