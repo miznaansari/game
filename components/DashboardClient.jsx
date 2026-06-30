@@ -38,6 +38,9 @@ export default function DashboardClient({ user, defaultTab = "home" }) {
   const [actionLoadingId, setActionLoadingId] = useState(null);
   const [inviteTargetId, setInviteTargetId] = useState(null);
   const [notificationsDisabled, setNotificationsDisabled] = useState(false);
+  const [inviteGameMode, setInviteGameMode] = useState(null); // BATTLE, MEMORY, TICTACTOE, WORD_GUESS
+  const [wordCountSelection, setWordCountSelection] = useState(5); // 4, 5, 6
+  const [modalSearchQuery, setModalSearchQuery] = useState("");
   const [currentSlide, setCurrentSlide] = useState(0);
 
   // Auto-rotating promo banner interval
@@ -223,6 +226,7 @@ export default function DashboardClient({ user, defaultTab = "home" }) {
   const handleInviteToGame = async (receiverId, mode = "BATTLE", wordCount = 5) => {
     setActionLoadingId(receiverId);
     setInviteTargetId(null);
+    setInviteGameMode(null);
     try {
       const res = await fetch("/api/games", {
         method: "POST",
@@ -423,6 +427,127 @@ export default function DashboardClient({ user, defaultTab = "home" }) {
         </div>
       )}
 
+      {/* Select Friend Modal (Game-First Invite Flow) */}
+      {inviteGameMode && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl border border-slate-200 p-6 max-w-md w-full shadow-2xl flex flex-col gap-4 max-h-[90vh]">
+            <div className="flex justify-between items-center">
+              <div>
+                <h3 className="font-display font-black text-lg text-slate-800 flex items-center gap-1.5">
+                  Challenge Friends 🎮
+                </h3>
+                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mt-0.5">
+                  Arena: {inviteGameMode === "MEMORY" ? "🧩 Memory Match" : (inviteGameMode === "TICTACTOE" ? "❌⭕ Tic Tac Toe" : (inviteGameMode === "WORD_GUESS" ? "📝 Word Guess" : "🎯 Grid Battleship"))}
+                </p>
+              </div>
+              <button 
+                onClick={() => {
+                  setInviteGameMode(null);
+                  setModalSearchQuery("");
+                }}
+                className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 hover:bg-slate-200 active-scale cursor-pointer"
+              >
+                <span className="material-symbols-outlined text-[18px]">close</span>
+              </button>
+            </div>
+
+            {/* Word Guess Word Count Sub-selection */}
+            {inviteGameMode === "WORD_GUESS" && (
+              <div className="bg-emerald-50/50 border border-emerald-100 rounded-2xl p-3.5 flex flex-col gap-2">
+                <span className="text-[10px] text-emerald-800 font-extrabold uppercase tracking-wider">Configure Word List Length</span>
+                <div className="flex gap-2">
+                  {[4, 5, 6].map((count) => (
+                    <button
+                      key={count}
+                      onClick={() => setWordCountSelection(count)}
+                      className={`flex-grow py-2 rounded-xl font-display font-extrabold text-xs active-scale transition-all border ${
+                        wordCountSelection === count
+                          ? "bg-emerald-600 border-emerald-600 text-white shadow-sm font-black"
+                          : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
+                      }`}
+                    >
+                      {count} Words
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Friend Search Input */}
+            <div className="relative">
+              <span className="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">search</span>
+              <input
+                type="text"
+                placeholder="Search squad friends..."
+                value={modalSearchQuery}
+                onChange={(e) => setModalSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 focus:border-indigo-500 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500/20 text-slate-700 font-semibold"
+              />
+            </div>
+
+            {/* Friends list scrollable area */}
+            <div className="flex-grow overflow-y-auto space-y-2.5 max-h-[45vh] pr-1">
+              {friends.accepted.filter(({ friend }) => {
+                const name = (friend.name || "").toLowerCase();
+                const email = (friend.email || "").toLowerCase();
+                const q = modalSearchQuery.toLowerCase();
+                return name.includes(q) || email.includes(q);
+              }).length === 0 ? (
+                <div className="text-center py-8 text-slate-400 font-bold text-xs bg-slate-50/50 border border-slate-100 rounded-2xl">
+                  {friends.accepted.length === 0 ? "Add friends in the Friends tab to challenge them!" : "No matching friends found."}
+                </div>
+              ) : (
+                friends.accepted
+                  .filter(({ friend }) => {
+                    const name = (friend.name || "").toLowerCase();
+                    const email = (friend.email || "").toLowerCase();
+                    const q = modalSearchQuery.toLowerCase();
+                    return name.includes(q) || email.includes(q);
+                  })
+                  .map(({ friendshipId, friend }) => {
+                    const isOnline = statuses[friend.id] !== undefined ? statuses[friend.id] === "online" : friend.isOnline;
+                    return (
+                      <div 
+                        key={friendshipId} 
+                        className="flex items-center justify-between p-2 rounded-2xl border border-slate-100 hover:bg-slate-50/50 transition-colors"
+                      >
+                        <div className="flex items-center gap-3 overflow-hidden mr-2">
+                          <div className="relative shrink-0">
+                            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-500 text-white font-display font-extrabold text-sm uppercase flex items-center justify-center">
+                              {friend.name ? friend.name[0] : friend.email[0]}
+                            </div>
+                            <span className={`absolute bottom-[-2px] right-[-2px] w-3 h-3 border-2 border-white rounded-full ${
+                              isOnline ? "bg-emerald-500" : "bg-slate-300"
+                            }`}></span>
+                          </div>
+                          <div className="overflow-hidden">
+                            <h4 className="font-bold text-xs text-slate-800 truncate leading-tight">
+                              {friend.name || friend.email.split("@")[0]}
+                            </h4>
+                            <p className="text-[9px] text-slate-400 font-semibold truncate mt-0.5">{friend.email}</p>
+                          </div>
+                        </div>
+
+                        <button
+                          disabled={actionLoadingId === friend.id}
+                          onClick={() => handleInviteToGame(friend.id, inviteGameMode, wordCountSelection)}
+                          className="px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-display font-black text-xs active-scale shadow-sm shrink-0 flex items-center justify-center min-w-[64px]"
+                        >
+                          {actionLoadingId === friend.id ? (
+                            <div className="w-3.5 h-3.5 rounded-full border-2 border-white/30 border-t-white animate-spin"></div>
+                          ) : (
+                            "Invite"
+                          )}
+                        </button>
+                      </div>
+                    );
+                  })
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* TopAppBar */}
       <header className="w-full top-0 sticky z-40 bg-surface-bright/80 backdrop-blur-xl border-b border-outline-variant/30 shadow-sm flex justify-between items-center px-5 py-2 h-14">
         <div className="flex items-center gap-3">
@@ -549,72 +674,101 @@ export default function DashboardClient({ user, defaultTab = "home" }) {
 
                 <PWAInstallBanner />
 
-                {/* Bento Grid layout */}
-                <div className="grid grid-cols-1 gap-4">
-                  {/* Play 1v1 Card (Blue/Purple Gradient) */}
-                  <div className="relative overflow-hidden rounded-2xl card-shadow glossy-shine bg-gradient-to-br from-[#2e5bff] to-[#731be5] p-6 h-60 flex flex-col justify-between active-scale transition-transform">
-                    <div className="absolute top-[-20px] right-[-20px] opacity-20">
-                      <span className="material-symbols-outlined text-[120px] text-white">sports_esports</span>
-                    </div>
-                    <div>
-                      <span className="bg-white/20 text-white text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider">Live Arena</span>
-                      <h3 className="text-white font-display text-xl font-extrabold mt-2">Play 1v1</h3>
-                      <p className="text-white/80 text-sm mt-1 max-w-[220px]">Challenge opponents and climb the ranks.</p>
-                    </div>
-                    {/* Floating Doraemon Sticker */}
-                    <img 
-                      src="/doraemon_sticker.png" 
-                      alt="Doraemon" 
-                      className="absolute right-4 bottom-14 w-20 h-20 object-contain sticker-doraemon pointer-events-none drop-shadow-md" 
-                    />
-                    <button 
-                      onClick={() => setActiveTab("friends")}
-                      className="w-full h-11 rounded-xl btn-3d-blue text-white font-bold text-sm flex items-center justify-center gap-2 cursor-pointer z-10"
+                {/* Redesigned Games Arena Selector */}
+                <div className="space-y-3">
+                  <h3 className="font-display text-sm font-extrabold text-on-surface uppercase tracking-wider flex items-center gap-1.5">
+                    <span className="material-symbols-outlined text-[18px] text-primary">sports_esports</span>
+                    Select Game Arena
+                  </h3>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Game 1: Grid Battleship */}
+                    <div 
+                      onClick={() => setInviteGameMode("BATTLE")}
+                      className="relative overflow-hidden rounded-3xl card-shadow glossy-shine bg-gradient-to-br from-[#2e5bff] to-[#731be5] p-5 h-48 flex flex-col justify-between active-scale transition-all hover:shadow-indigo-500/20 hover:shadow-xl cursor-pointer group border border-white/10"
                     >
-                      Start Match
-                      <span className="material-symbols-outlined text-[20px]">bolt</span>
-                    </button>
-                  </div>
-
-                  {/* Friends Card (Green/Teal Gradient) */}
-                  <div className="relative overflow-hidden rounded-2xl card-shadow glossy-shine bg-gradient-to-br from-[#00c853] to-[#00838f] p-6 h-60 flex flex-col justify-between active-scale transition-transform">
-                    <div className="absolute top-[-20px] right-[-20px] opacity-20">
-                      <span className="material-symbols-outlined text-[120px] text-white">group</span>
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-1.5">
-                        <span className="w-2.5 h-2.5 bg-lime-400 rounded-full animate-pulse"></span>
-                        <span className="text-white text-[10px] font-bold uppercase tracking-wider">
-                          {onlineFriendsCount} Squad Online
-                        </span>
+                      <div className="absolute top-[-10px] right-[-10px] opacity-10 group-hover:scale-110 transition-transform duration-300">
+                        <span className="material-symbols-outlined text-[100px] text-white">target</span>
                       </div>
-                      <h3 className="text-white font-display text-xl font-extrabold mt-2">Friends List</h3>
-                      <p className="text-white/80 text-sm mt-1 max-w-[220px]">See who is online and start real-time battle.</p>
+                      {/* Floating Ninja Hattori Sticker */}
+                      <img 
+                        src="/ninja_hattori_sticker.png" 
+                        alt="Ninja" 
+                        className="absolute right-2 bottom-2 w-16 h-16 object-contain sticker-ninja pointer-events-none drop-shadow-md z-10" 
+                      />
+                      <div>
+                        <span className="bg-white/20 text-white text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider">Tactical</span>
+                        <h4 className="text-white font-display text-lg font-black mt-2 flex items-center gap-1">Grid Battleship 🎯</h4>
+                        <p className="text-white/80 text-[10px] font-bold mt-1 max-w-[170px] leading-relaxed">Hide ships and strike enemy coordinates.</p>
+                      </div>
+                      <span className="text-[10px] font-black text-white bg-white/10 self-start px-3 py-1 rounded-xl group-hover:bg-white/25 transition">PLAY NOW</span>
                     </div>
-                    {/* Floating Ninja Hattori Sticker */}
-                    <img 
-                      src="/ninja_hattori_sticker.png" 
-                      alt="Ninja Hattori" 
-                      className="absolute right-4 bottom-14 w-20 h-20 object-contain sticker-ninja pointer-events-none drop-shadow-md" 
-                    />
-                    <button 
-                      onClick={() => setActiveTab("friends")}
-                      className="w-full h-11 rounded-xl btn-3d-green text-white font-bold text-sm flex items-center justify-center gap-2 cursor-pointer z-10"
-                    >
-                      View Squad
-                      <span className="material-symbols-outlined text-[20px]">chevron_right</span>
-                    </button>
-                  </div>
 
-                  {/* Split Row for Match History and Progress */}
-                  <div className="grid grid-cols-2 gap-4">
-                    {/* Match History Card (Orange/Red) */}
-                    <div className="relative overflow-hidden rounded-2xl card-shadow glossy-shine bg-gradient-to-br from-[#ff6d00] to-[#d50000] p-5 h-44 flex flex-col justify-between active-scale transition-transform">
-                      <div className="absolute top-[-10px] right-[-10px] opacity-20">
-                        <span className="material-symbols-outlined text-[80px] text-white">history</span>
+                    {/* Game 2: Emoji Memory Match */}
+                    <div 
+                      onClick={() => setInviteGameMode("MEMORY")}
+                      className="relative overflow-hidden rounded-3xl card-shadow glossy-shine bg-gradient-to-br from-[#d946ef] to-[#8b5cf6] p-5 h-48 flex flex-col justify-between active-scale transition-all hover:shadow-fuchsia-500/20 hover:shadow-xl cursor-pointer group border border-white/10"
+                    >
+                      <div className="absolute top-[-10px] right-[-10px] opacity-10 group-hover:scale-110 transition-transform duration-300">
+                        <span className="material-symbols-outlined text-[100px] text-white">extension</span>
                       </div>
                       <div>
-                        <h3 className="text-white font-display text-base font-extrabold">Battle History</h3>
+                        <span className="bg-white/20 text-white text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider">Mind Puzzles</span>
+                        <h4 className="text-white font-display text-lg font-black mt-2 flex items-center gap-1">Memory Match 🧩</h4>
+                        <p className="text-white/80 text-[10px] font-bold mt-1 max-w-[170px] leading-relaxed">Flip cards and match emoji pairs quickly.</p>
+                      </div>
+                      <span className="text-[10px] font-black text-white bg-white/10 self-start px-3 py-1 rounded-xl group-hover:bg-white/25 transition">PLAY NOW</span>
+                    </div>
+
+                    {/* Game 3: Tic Tac Toe */}
+                    <div 
+                      onClick={() => setInviteGameMode("TICTACTOE")}
+                      className="relative overflow-hidden rounded-3xl card-shadow glossy-shine bg-gradient-to-br from-[#f59e0b] to-[#f97316] p-5 h-48 flex flex-col justify-between active-scale transition-all hover:shadow-amber-500/20 hover:shadow-xl cursor-pointer group border border-white/10"
+                    >
+                      <div className="absolute top-[-10px] right-[-10px] opacity-10 group-hover:scale-110 transition-transform duration-300">
+                        <span className="material-symbols-outlined text-[100px] text-white">grid_3x3</span>
+                      </div>
+                      <div>
+                        <span className="bg-white/20 text-white text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider">Strategy</span>
+                        <h4 className="text-white font-display text-lg font-black mt-2 flex items-center gap-1">Tic Tac Toe ❌⭕</h4>
+                        <p className="text-white/80 text-[10px] font-bold mt-1 max-w-[170px] leading-relaxed">Align three symbols classic duel.</p>
+                      </div>
+                      <span className="text-[10px] font-black text-white bg-white/10 self-start px-3 py-1 rounded-xl group-hover:bg-white/25 transition">PLAY NOW</span>
+                    </div>
+
+                    {/* Game 4: Word Guess */}
+                    <div 
+                      onClick={() => setInviteGameMode("WORD_GUESS")}
+                      className="relative overflow-hidden rounded-3xl card-shadow glossy-shine bg-gradient-to-br from-[#10b981] to-[#14b8a6] p-5 h-48 flex flex-col justify-between active-scale transition-all hover:shadow-emerald-500/20 hover:shadow-xl cursor-pointer group border border-white/10"
+                    >
+                      <div className="absolute top-[-10px] right-[-10px] opacity-10 group-hover:scale-110 transition-transform duration-300">
+                        <span className="material-symbols-outlined text-[100px] text-white">notes</span>
+                      </div>
+                      {/* Floating Doraemon Sticker */}
+                      <img 
+                        src="/doraemon_sticker.png" 
+                        alt="Doraemon" 
+                        className="absolute right-2 bottom-2 w-16 h-16 object-contain sticker-doraemon pointer-events-none drop-shadow-md z-10" 
+                      />
+                      <div>
+                        <span className="bg-white/20 text-white text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider">Social AI</span>
+                        <h4 className="text-white font-display text-lg font-black mt-2 flex items-center gap-1">Word Guess 📝</h4>
+                        <p className="text-white/80 text-[10px] font-bold mt-1 max-w-[170px] leading-relaxed">Build word chains and guess opponent secret list.</p>
+                      </div>
+                      <span className="text-[10px] font-black text-white bg-white/10 self-start px-3 py-1 rounded-xl group-hover:bg-white/25 transition">PLAY NOW</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Split Row for Match History and Progress */}
+                <div className="grid grid-cols-2 gap-4">
+                  {/* Match History Card (Orange/Red) */}
+                  <div className="relative overflow-hidden rounded-2xl card-shadow glossy-shine bg-gradient-to-br from-[#ff6d00] to-[#d50000] p-5 h-44 flex flex-col justify-between active-scale transition-transform">
+                    <div className="absolute top-[-10px] right-[-10px] opacity-20">
+                      <span className="material-symbols-outlined text-[80px] text-white">history</span>
+                    </div>
+                    <div>
+                      <h3 className="text-white font-display text-base font-extrabold">Battle History</h3>
                         <div className="flex flex-wrap gap-1.5 mt-2">
                           <span className="bg-white/20 text-white text-[10px] font-bold px-2 py-0.5 rounded border border-white/20">
                             {winsCount} Wins
@@ -659,7 +813,6 @@ export default function DashboardClient({ user, defaultTab = "home" }) {
                       </div>
                     </div>
                   </div>
-                </div>
 
                 {/* Auto-swiping Carousel Promo Banner */}
                 <section className="mb-6 overflow-hidden rounded-2xl card-shadow relative">
