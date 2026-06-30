@@ -155,7 +155,7 @@ export default function GameClient({ game, user, initialMessages }) {
 
   // Handle timer countdown during SELECTING phase
   useEffect(() => {
-    if (gameState.status !== "SELECTING" || !readyToSelect || hasLockedSelections) return;
+    if (gameState.status !== "SELECTING" || !readyToSelect || hasLockedSelections || gameState.mode === "WORD_GUESS") return;
 
     const timer = setInterval(() => {
       setTimeLeft((prev) => {
