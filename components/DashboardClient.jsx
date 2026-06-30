@@ -309,7 +309,7 @@ export default function DashboardClient({ user, defaultTab = "home" }) {
                     ? "Emoji Memory Match 🧩" 
                     : (activeInvite.mode === "TICTACTOE" 
                       ? "Tic Tac Toe ❌⭕" 
-                      : "Grid Battleship 🎯")}
+                      : (activeInvite.mode === "WORD_GUESS" ? "Word Guess 📝" : "Grid Battleship 🎯"))}
                 </span>.
               </p>
             </div>
@@ -450,7 +450,24 @@ export default function DashboardClient({ user, defaultTab = "home" }) {
       </header>
 
       {/* Main Canvas Container */}
-      <main className="flex-grow px-5 pt-5 max-w-2xl mx-auto w-full">
+      <main className="flex-grow px-5 pt-5 max-w-2xl mx-auto w-full relative">
+        {/* Kid-friendly Bobbing Sticker Animations */}
+        <style dangerouslySetInnerHTML={{ __html: `
+          @keyframes bobbing {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-8px) rotate(3deg); }
+          }
+          @keyframes floating {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-6px) rotate(-3deg); }
+          }
+          .sticker-doraemon {
+            animation: bobbing 4s ease-in-out infinite;
+          }
+          .sticker-ninja {
+            animation: floating 3.5s ease-in-out infinite;
+          }
+        `}} />
         {loading ? (
           <div className="space-y-6 animate-pulse">
             <section className="space-y-2">
@@ -511,7 +528,7 @@ export default function DashboardClient({ user, defaultTab = "home" }) {
                           <span className="text-emerald-600 font-black">{waitingMatch.opponentName}</span> is waiting for you!
                         </h4>
                         <p className="text-[10px] font-bold text-on-surface-variant leading-relaxed mt-0.5">
-                          Join the {waitingMatch.mode === "MEMORY" ? "Emoji Memory Match" : (waitingMatch.mode === "TICTACTOE" ? "Tic Tac Toe" : "Grid Battleship")} game now to resume.
+                          Join the {waitingMatch.mode === "MEMORY" ? "Emoji Memory Match" : (waitingMatch.mode === "TICTACTOE" ? "Tic Tac Toe" : (waitingMatch.mode === "WORD_GUESS" ? "Word Guess" : "Grid Battleship"))} game now to resume.
                         </p>
                       </div>
                     </div>
@@ -544,9 +561,15 @@ export default function DashboardClient({ user, defaultTab = "home" }) {
                       <h3 className="text-white font-display text-xl font-extrabold mt-2">Play 1v1</h3>
                       <p className="text-white/80 text-sm mt-1 max-w-[220px]">Challenge opponents and climb the ranks.</p>
                     </div>
+                    {/* Floating Doraemon Sticker */}
+                    <img 
+                      src="/doraemon_sticker.png" 
+                      alt="Doraemon" 
+                      className="absolute right-4 bottom-14 w-20 h-20 object-contain sticker-doraemon pointer-events-none drop-shadow-md" 
+                    />
                     <button 
                       onClick={() => setActiveTab("friends")}
-                      className="w-full h-11 rounded-xl btn-3d-blue text-white font-bold text-sm flex items-center justify-center gap-2 cursor-pointer"
+                      className="w-full h-11 rounded-xl btn-3d-blue text-white font-bold text-sm flex items-center justify-center gap-2 cursor-pointer z-10"
                     >
                       Start Match
                       <span className="material-symbols-outlined text-[20px]">bolt</span>
@@ -568,9 +591,15 @@ export default function DashboardClient({ user, defaultTab = "home" }) {
                       <h3 className="text-white font-display text-xl font-extrabold mt-2">Friends List</h3>
                       <p className="text-white/80 text-sm mt-1 max-w-[220px]">See who is online and start real-time battle.</p>
                     </div>
+                    {/* Floating Ninja Hattori Sticker */}
+                    <img 
+                      src="/ninja_hattori_sticker.png" 
+                      alt="Ninja Hattori" 
+                      className="absolute right-4 bottom-14 w-20 h-20 object-contain sticker-ninja pointer-events-none drop-shadow-md" 
+                    />
                     <button 
                       onClick={() => setActiveTab("friends")}
-                      className="w-full h-11 rounded-xl btn-3d-green text-white font-bold text-sm flex items-center justify-center gap-2 cursor-pointer"
+                      className="w-full h-11 rounded-xl btn-3d-green text-white font-bold text-sm flex items-center justify-center gap-2 cursor-pointer z-10"
                     >
                       View Squad
                       <span className="material-symbols-outlined text-[20px]">chevron_right</span>
@@ -959,7 +988,7 @@ export default function DashboardClient({ user, defaultTab = "home" }) {
                               {isWinner ? "Victory" : "Defeat"}
                             </span>
                             <h4 className="font-display font-extrabold text-sm text-on-surface">
-                              vs. {opponent.name || opponent.email} <span className="text-[10px] text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-full font-bold ml-1">{game.mode === "MEMORY" ? "🧩 Memory" : "🎯 Battle"}</span>
+                              vs. {opponent.name || opponent.email} <span className="text-[10px] text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-full font-bold ml-1">{game.mode === "MEMORY" ? "🧩 Memory" : (game.mode === "TICTACTOE" ? "❌⭕ Tic Tac Toe" : (game.mode === "WORD_GUESS" ? "📝 Word Guess" : "🎯 Battle"))}</span>
                             </h4>
                             <p className="text-[10px] text-outline font-semibold">
                               Played on {new Date(game.updatedAt).toLocaleDateString()}
@@ -983,7 +1012,7 @@ export default function DashboardClient({ user, defaultTab = "home" }) {
                 {/* Profile Card details */}
                 <div className="bg-surface-container-lowest border border-outline-variant/30 rounded-2xl p-6 card-shadow space-y-4">
                   <div className="flex items-center gap-4">
-                    <div className="w-16 h-16 rounded-2xl bg-primary text-white flex items-center justify-center font-display font-extrabold text-2xl uppercase shadow-md">
+                    <div className="w-16 h-16 rounded-2xl bg-primary text-white flex items-center justify-center font-display font-extrabold text-2xl uppercase shadow-md animate-bob">
                       {user.name ? user.name[0] : user.email[0]}
                     </div>
                     <div>
@@ -1032,7 +1061,7 @@ export default function DashboardClient({ user, defaultTab = "home" }) {
                               <p className="font-bold text-sm text-on-surface flex items-center gap-1.5 flex-wrap">
                                 <span>vs {opponent.name || opponent.email}</span>
                                 <span className="text-[9px] text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-full font-bold">
-                                  {game.mode === "MEMORY" ? "🧩 Memory" : (game.mode === "TICTACTOE" ? "❌⭕ Tic Tac Toe" : "🎯 Battle")}
+                                  {game.mode === "MEMORY" ? "🧩 Memory" : (game.mode === "TICTACTOE" ? "❌⭕ Tic Tac Toe" : (game.mode === "WORD_GUESS" ? "📝 Word Guess" : "🎯 Battle"))}
                                 </span>
                                 {isOpponentWaiting && (
                                   <span className="text-[8px] bg-emerald-500 text-white px-1.5 py-0.5 rounded-full font-black animate-pulse">WAITING</span>

@@ -744,9 +744,13 @@ export default function GameClient({ game, user, initialMessages }) {
   };
 
   // Calculations
-  const calculatedHits = myGuesses.filter(g => (opponentSelections || []).includes(g)).length;
-  const calculatedMisses = myGuesses.filter(g => !(opponentSelections || []).includes(g)).length;
-  const blocksRemaining = 5 - calculatedHits;
+  const calculatedHits = gameState.mode === "BATTLE"
+    ? myGuesses.filter(g => Array.isArray(opponentSelections) && opponentSelections.includes(g)).length
+    : 0;
+  const calculatedMisses = gameState.mode === "BATTLE"
+    ? myGuesses.filter(g => Array.isArray(opponentSelections) && !opponentSelections.includes(g)).length
+    : 0;
+  const blocksRemaining = gameState.mode === "BATTLE" ? 5 - calculatedHits : 0;
 
   // Grid Blocks Renderers
   const renderSelectionGrid = () => {
