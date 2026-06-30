@@ -68,14 +68,34 @@ export default function GameClient({ game, user, initialMessages }) {
   const [revealedEmojis, setRevealedEmojis] = useState({});
   const [isProcessingFlip, setIsProcessingFlip] = useState(false);
 
-  const myScore = isPlayer1 ? (gameState.player1Score || 0) : (gameState.player2Score || 0);
-  const opponentScore = isPlayer1 ? (gameState.player2Score || 0) : (gameState.player1Score || 0);
+  // Word Guess States
+  const wordCount = (gameState.mode === "WORD_GUESS" && gameState.memoryGrid) 
+    ? (parseJsonField(gameState.memoryGrid).wordCount || 5) 
+    : 5;
+  const [wordInputs, setWordInputs] = useState(Array(wordCount).fill(""));
+  const [themeInput, setThemeInput] = useState("");
+  const [suggestions, setSuggestions] = useState([]);
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false);
+  const [opponentSetupProgress, setOpponentSetupProgress] = useState(Array(wordCount).fill(0));
+  const [opponentSetupReady, setOpponentSetupReady] = useState(false);
+  const [guessTexts, setGuessTexts] = useState(Array(wordCount).fill(""));
 
   const mySelections = parseJsonField(isPlayer1 ? gameState.player1Selections : gameState.player2Selections);
   const opponentSelections = parseJsonField(isPlayer1 ? gameState.player2Selections : gameState.player1Selections);
 
-  const myGuesses = parseJsonField(isPlayer1 ? gameState.player1Guesses : gameState.player2Guesses);
-  const opponentGuesses = parseJsonField(isPlayer1 ? gameState.player2Guesses : gameState.player1Guesses);
+  const myGuessesObj = parseJsonField(isPlayer1 ? gameState.player1Guesses : gameState.player2Guesses);
+  const opponentGuessesObj = parseJsonField(isPlayer1 ? gameState.player2Guesses : gameState.player1Guesses);
+
+  const myGuesses = gameState.mode === "WORD_GUESS" ? (myGuessesObj?.correct || []) : (Array.isArray(myGuessesObj) ? myGuessesObj : []);
+  const opponentGuesses = gameState.mode === "WORD_GUESS" ? (opponentGuessesObj?.correct || []) : (Array.isArray(opponentGuessesObj) ? opponentGuessesObj : []);
+
+  const myScore = gameState.mode === "WORD_GUESS" 
+    ? (myGuesses.length) 
+    : (isPlayer1 ? (gameState.player1Score || 0) : (gameState.player2Score || 0));
+
+  const opponentScore = gameState.mode === "WORD_GUESS" 
+    ? (opponentGuesses.length) 
+    : (isPlayer1 ? (gameState.player2Score || 0) : (gameState.player1Score || 0));
 
   const matchedList = parseJsonField(gameState.memoryMatched);
   const flippedList = parseJsonField(gameState.memoryFlipped);
@@ -121,11 +141,17 @@ export default function GameClient({ game, user, initialMessages }) {
 
   // Sync locked selections
   useEffect(() => {
-    if (mySelections && Array.isArray(mySelections) && mySelections.length === 5) {
-      setHasLockedSelections(true);
-      setSelectedIndices(mySelections);
+    if (gameState.mode === "WORD_GUESS") {
+      if (mySelections && mySelections.words && mySelections.words.length > 0) {
+        setHasLockedSelections(true);
+      }
+    } else {
+      if (mySelections && Array.isArray(mySelections) && mySelections.length === 5) {
+        setHasLockedSelections(true);
+        setSelectedIndices(mySelections);
+      }
     }
-  }, [mySelections]);
+  }, [mySelections, gameState.mode]);
 
   // Handle timer countdown during SELECTING phase
   useEffect(() => {
@@ -328,6 +354,40 @@ export default function GameClient({ game, user, initialMessages }) {
       }
     });
 
+    newSocket.on("opponent-setup-progress", ({ userId, lengths }) => {
+      if (userId !== user.id) {
+        setOpponentSetupProgress(lengths);
+      }
+    });
+
+    newSocket.on("opponent-setup-submitted", ({ userId }) => {
+      if (userId !== user.id) {
+        setOpponentSetupReady(true);
+      }
+    });
+
+    newSocket.on("word-guess-result", ({ game, result }) => {
+      triggerHaptic(20);
+      if (game) {
+        setGameState(prev => ({ 
+          ...game, 
+          player1: game.player1 || prev.player1, 
+          player2: game.player2 || prev.player2, 
+          winner: game.winner || prev.winner 
+        }));
+      }
+      if (result.userId === user.id) {
+        if (result.isWinner) {
+          triggerHaptic([150, 50, 150, 50, 250]);
+          triggerConfetti();
+        } else if (result.isCorrect) {
+          triggerHaptic([100, 50, 100]);
+        } else {
+          triggerHaptic(40);
+        }
+      }
+    });
+
     return () => {
       newSocket.emit("leave-game", { gameId: gameState.id, userId: user.id });
       newSocket.disconnect();
@@ -506,6 +566,116 @@ export default function GameClient({ game, user, initialMessages }) {
     }
     setSelectedIndices(current);
     handleLockSelections(current);
+  };
+
+  const handleWordInputChange = (index, value) => {
+    const newInputs = [...wordInputs];
+    newInputs[index] = value;
+    setWordInputs(newInputs);
+
+    // Emit live setup progress lengths
+    const lengths = newInputs.map(w => w.trim().length);
+    if (socket) {
+      socket.emit("word-guess-setup-progress", {
+        gameId: gameState.id,
+        userId: user.id,
+        lengths
+      });
+    }
+
+    // Fetch AI Suggestions if the current input word length > 2
+    if (value.trim().length > 2) {
+      fetchSuggestions(newInputs);
+    }
+  };
+
+  const fetchSuggestions = async (currentInputs) => {
+    const activeWords = currentInputs.map(w => w.trim()).filter(Boolean);
+    if (activeWords.length === 0) {
+      setSuggestions([]);
+      return;
+    }
+
+    setLoadingSuggestions(true);
+    try {
+      const res = await fetch("/api/games/word-suggest", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ currentWords: activeWords }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setSuggestions(data.suggestions || []);
+      }
+    } catch (err) {
+      console.error("Error fetching AI suggestions:", err);
+    } finally {
+      setLoadingSuggestions(false);
+    }
+  };
+
+  const handleSuggestionClick = (word) => {
+    const firstEmptyIndex = wordInputs.findIndex(w => !w.trim());
+    if (firstEmptyIndex !== -1) {
+      handleWordInputChange(firstEmptyIndex, word);
+    }
+  };
+
+  const submitWordGuessSetup = async () => {
+    // Validate all words are filled
+    const isAllWordsFilled = wordInputs.every(w => w.trim().length > 0);
+    if (!isAllWordsFilled || !themeInput.trim()) {
+      alert("Please fill in all words and the connecting theme.");
+      return;
+    }
+
+    setHasLockedSelections(true);
+    try {
+      const res = await fetch(`/api/games/${gameState.id}/word-guess-submit`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          words: wordInputs,
+          connection: themeInput
+        })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && data.game) {
+          setGameState(prev => ({ 
+            ...data.game, 
+            player1: data.game.player1 || prev.player1, 
+            player2: data.game.player2 || prev.player2, 
+            winner: data.game.winner || prev.winner 
+          }));
+          if (socket) {
+            socket.emit("submit-word-guess-setup", {
+              gameId: gameState.id,
+              userId: user.id
+            });
+          }
+        }
+      } else {
+        const errData = await res.json();
+        alert(errData.error || "Failed to submit word list.");
+        setHasLockedSelections(false);
+      }
+    } catch (err) {
+      console.error("Error submitting word list:", err);
+      setHasLockedSelections(false);
+    }
+  };
+
+  const submitWordGuessAttempt = (wordIndex, guessText) => {
+    if (!guessText.trim()) return;
+    if (socket) {
+      socket.emit("make-word-guess", {
+        gameId: gameState.id,
+        userId: user.id,
+        wordIndex,
+        guess: guessText
+      });
+    }
   };
 
   const makeGuess = (cellIndex) => {
@@ -906,45 +1076,153 @@ export default function GameClient({ game, user, initialMessages }) {
 
         {/* LOCKED WAIT SCREEN */}
         {gameState.status === "SELECTING" && (readyToSelect || hasLockedSelections) && (
-          <div className="flex-grow flex flex-col justify-center items-center py-4 gap-4">
-            {!hasLockedSelections ? (
-              <div className="w-full flex flex-col items-center gap-4">
-                <div className="text-center max-w-xs space-y-1">
-                  <h3 className="font-display font-extrabold text-base text-slate-800 flex items-center justify-center gap-1">
-                    <span className="material-symbols-outlined text-indigo-600 text-[22px]">shield</span>
-                    Hide 5 Secret Blocks
-                  </h3>
-                  <p className="text-xs text-slate-500">Tap 5 grid coordinates below to hide your blocks.</p>
-
-                  {/* Timer display */}
-                  <div className="flex items-center justify-center gap-1.5 mt-2 bg-indigo-50 text-indigo-600 px-3.5 py-1 rounded-full font-bold text-xs w-max mx-auto border border-indigo-100/60">
-                    <span className="material-symbols-outlined text-[16px] animate-spin">sync</span>
-                    <span>Auto-locks in {timeLeft}s</span>
+          gameState.mode === "WORD_GUESS" ? (
+            <div className="flex-grow flex flex-col w-full py-4 gap-4 overflow-y-auto max-h-[80vh]">
+              {!hasLockedSelections ? (
+                <div className="w-full flex flex-col gap-4">
+                  <div className="text-center">
+                    <h3 className="font-display font-extrabold text-base text-slate-800 flex items-center justify-center gap-1.5">
+                      <span className="material-symbols-outlined text-indigo-600 text-[22px]">notes</span>
+                      Setup Word Guess Match 📝
+                    </h3>
+                    <p className="text-xs text-slate-500 mt-1">Set {wordCount} related words and their secret connecting theme.</p>
                   </div>
+
+                  {/* Opponent Progress Row */}
+                  <div className="bg-slate-50 border border-slate-200/60 rounded-xl p-3 flex flex-col gap-2">
+                    <div className="flex justify-between items-center text-[10px] font-bold text-slate-500 uppercase">
+                      <span>Opponent's Live Chain:</span>
+                      {opponentSetupReady ? (
+                        <span className="text-emerald-600 font-extrabold flex items-center gap-0.5">
+                          <span className="material-symbols-outlined text-[12px]">check_circle</span> READY
+                        </span>
+                      ) : (
+                        <span className="text-amber-600 animate-pulse">CREATING...</span>
+                      )}
+                    </div>
+                    <div className="flex flex-wrap gap-2 justify-center py-1">
+                      {opponentSetupProgress.map((len, idx) => (
+                        <div key={idx} className="bg-slate-200/80 px-3 py-1.5 rounded-lg border border-slate-300/30 text-xs font-mono font-bold text-slate-600 flex items-center justify-center min-w-[50px] shadow-sm">
+                          {len > 0 ? "*".repeat(len) : <span className="text-[10px] font-semibold text-slate-400 italic">empty</span>}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Word Inputs */}
+                  <div className="space-y-3 mt-1">
+                    {Array.from({ length: wordCount }).map((_, index) => (
+                      <div key={index} className="flex flex-col gap-1">
+                        <label className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">Word {index + 1}</label>
+                        <input
+                          type="text"
+                          placeholder={`Enter word {index + 1}...`}
+                          value={wordInputs[index]}
+                          onChange={(e) => handleWordInputChange(index, e.target.value)}
+                          className="w-full bg-white border border-slate-200 hover:border-slate-300 focus:border-indigo-500 px-4 py-2 text-sm rounded-xl focus:outline-none focus:ring-1 focus:ring-indigo-500/20 transition-all font-semibold"
+                        />
+                      </div>
+                    ))}
+
+                    {/* Connection Input */}
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">Connecting Theme / Clue</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Parts of a plant / fruits / etc."
+                        value={themeInput}
+                        onChange={(e) => setThemeInput(e.target.value)}
+                        className="w-full bg-white border border-slate-200 hover:border-slate-300 focus:border-indigo-500 px-4 py-2 text-sm rounded-xl focus:outline-none focus:ring-1 focus:ring-indigo-500/20 transition-all font-semibold"
+                      />
+                    </div>
+                  </div>
+
+                  {/* AI Suggestions Chips */}
+                  <div className="bg-slate-50 border border-slate-200/60 rounded-xl p-3.5 space-y-2 mt-1">
+                    <p className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider flex items-center gap-1">
+                      <span className="material-symbols-outlined text-[14px] text-amber-500 font-bold animate-pulse">auto_awesome</span>
+                      Gemini Suggestions
+                    </p>
+                    {loadingSuggestions ? (
+                      <div className="flex items-center gap-1.5 text-xs text-slate-500 font-medium py-1">
+                        <span className="btn-loader mr-1 animate-spin" /> Generating suggestions...
+                      </div>
+                    ) : suggestions.length > 0 ? (
+                      <div className="flex flex-wrap gap-2">
+                        {suggestions.map((word) => (
+                          <button
+                            key={word}
+                            onClick={() => handleSuggestionClick(word)}
+                            className="px-3 py-1 bg-white border border-slate-200 hover:border-indigo-500 hover:text-indigo-600 rounded-full text-xs font-bold text-slate-600 transition cursor-pointer active-scale shadow-sm"
+                          >
+                            + {word}
+                          </button>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-[10px] text-slate-400 italic">Type a word in the slots above to see AI suggestion chips here.</p>
+                    )}
+                  </div>
+
+                  <button
+                    onClick={submitWordGuessSetup}
+                    disabled={!wordInputs.every(w => w.trim().length > 0) || !themeInput.trim()}
+                    className="w-full h-12 bg-gradient-to-r from-indigo-600 to-blue-600 text-white font-display font-extrabold text-sm rounded-xl active-scale disabled:opacity-50 disabled:cursor-not-allowed shadow-md cursor-pointer transition mt-2"
+                  >
+                    Lock In Word List
+                  </button>
                 </div>
+              ) : (
+                <div className="light-card rounded-2xl p-8 text-center max-w-sm w-full space-y-5 flex flex-col items-center">
+                  <div className="radar-spinner mb-2"></div>
+                  <h3 className="font-display font-extrabold text-base text-slate-800">Word List Locked!</h3>
+                  <p className="text-xs text-slate-500 font-semibold leading-relaxed max-w-[240px]">
+                    Waiting for opponent to submit their word list...
+                  </p>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="flex-grow flex flex-col justify-center items-center py-4 gap-4">
+              {!hasLockedSelections ? (
+                <div className="w-full flex flex-col items-center gap-4">
+                  <div className="text-center max-w-xs space-y-1">
+                    <h3 className="font-display font-extrabold text-base text-slate-800 flex items-center justify-center gap-1">
+                      <span className="material-symbols-outlined text-indigo-600 text-[22px]">shield</span>
+                      Hide 5 Secret Blocks
+                    </h3>
+                    <p className="text-xs text-slate-500">Tap 5 grid coordinates below to hide your blocks.</p>
 
-                {renderSelectionGrid()}
+                    {/* Timer display */}
+                    <div className="flex items-center justify-center gap-1.5 mt-2 bg-indigo-50 text-indigo-600 px-3.5 py-1 rounded-full font-bold text-xs w-max mx-auto border border-indigo-100/60">
+                      <span className="material-symbols-outlined text-[16px] animate-spin">sync</span>
+                      <span>Auto-locks in {timeLeft}s</span>
+                    </div>
+                  </div>
 
-                <button
-                  disabled={selectedIndices.length !== 5}
-                  onClick={() => handleLockSelections()}
-                  className="w-full max-w-[280px] h-12 bg-gradient-to-r from-indigo-600 to-blue-600 text-white font-display font-extrabold text-sm rounded-xl active-scale disabled:opacity-50 disabled:cursor-not-allowed shadow-sm cursor-pointer"
-                >
-                  Lock In Selections
-                </button>
-              </div>
-            ) : (
-              <div className="light-card rounded-2xl p-8 text-center max-w-sm w-full space-y-5 flex flex-col items-center">
-                <div className="radar-spinner mb-2"></div>
-                <h3 className="font-display font-extrabold text-base text-slate-800">Selections Locked!</h3>
-                <p className="text-xs text-slate-500 font-semibold leading-relaxed max-w-[240px]">
-                  {opponentJoined
-                    ? "Calibrating radar. Waiting for opponent to hide their blocks..."
-                    : "Calibrating radar. Waiting for opponent to join..."}
-                </p>
-              </div>
-            )}
-          </div>
+                  {renderSelectionGrid()}
+
+                  <button
+                    disabled={selectedIndices.length !== 5}
+                    onClick={() => handleLockSelections()}
+                    className="w-full max-w-[280px] h-12 bg-gradient-to-r from-indigo-600 to-blue-600 text-white font-display font-extrabold text-sm rounded-xl active-scale disabled:opacity-50 disabled:cursor-not-allowed shadow-sm cursor-pointer"
+                  >
+                    Lock In Selections
+                  </button>
+                </div>
+              ) : (
+                <div className="light-card rounded-2xl p-8 text-center max-w-sm w-full space-y-5 flex flex-col items-center">
+                  <div className="radar-spinner mb-2"></div>
+                  <h3 className="font-display font-extrabold text-base text-slate-800">Selections Locked!</h3>
+                  <p className="text-xs text-slate-500 font-semibold leading-relaxed max-w-[240px]">
+                    {opponentJoined
+                      ? "Calibrating radar. Waiting for opponent to hide their blocks..."
+                      : "Calibrating radar. Waiting for opponent to join..."}
+                  </p>
+                </div>
+              )}
+            </div>
+          )
         )}
 
         {/* ACTIVE GAMEBOARD */}
@@ -1122,6 +1400,142 @@ export default function GameClient({ game, user, initialMessages }) {
                 </p>
               </div>
             </div>
+          ) : gameState.mode === "WORD_GUESS" ? (
+            <div className="flex-grow flex flex-col py-2 gap-4 overflow-y-auto max-h-[80vh]">
+              {/* Connection Theme Banner */}
+              <div className="bg-slate-50 border border-slate-200/60 rounded-2xl p-4 text-center">
+                <span className="text-[10px] text-slate-500 font-extrabold uppercase tracking-wider block">Opponent's Theme Connection Clue</span>
+                <span className="font-display font-extrabold text-sm text-indigo-600 mt-1 block">
+                  "{opponentSelections?.connection || 'No clue provided'}"
+                </span>
+              </div>
+
+              {/* Side-by-Side Play Area */}
+              <div className="grid grid-cols-2 gap-3.5 flex-grow items-start">
+                
+                {/* Column 1: YOU (Solving) */}
+                <div className="flex flex-col gap-3">
+                  <div className="text-center bg-indigo-50 border border-indigo-100 rounded-xl py-1.5 px-2">
+                    <span className="text-[9px] font-black text-indigo-700 uppercase tracking-wide block">You (Guessing)</span>
+                    <span className="block text-[10px] font-bold text-slate-500 mt-0.5">{myScore} / {wordCount} Guessed</span>
+                  </div>
+
+                  <div className="space-y-2.5">
+                    {opponentSelections?.words?.map((word, idx) => {
+                      const isCorrect = myGuesses.includes(word.toLowerCase());
+                      const revealedCount = myGuessesObj?.revealedLetters?.[idx] || 1;
+                      
+                      // Clue generation: first revealedCount letters, and underscores
+                      let clueString = "";
+                      for (let c = 0; c < word.length; c++) {
+                        if (c < revealedCount || isCorrect) {
+                          clueString += word[c].toUpperCase() + " ";
+                        } else {
+                          clueString += "_ ";
+                        }
+                      }
+
+                      return (
+                        <div key={idx} className="bg-white border border-slate-200 rounded-xl p-3 shadow-sm flex flex-col gap-1.5">
+                          <div className="text-[10px] font-bold text-slate-400">Word {idx + 1} ({word.length} letters)</div>
+                          <div className={`font-mono text-xs font-black tracking-widest py-1 ${isCorrect ? 'text-emerald-600 font-black' : 'text-slate-800'}`}>
+                            {clueString}
+                          </div>
+                          {!isCorrect ? (
+                            <form
+                              onSubmit={(e) => {
+                                e.preventDefault();
+                                const inputVal = guessTexts[idx] || "";
+                                submitWordGuessAttempt(idx, inputVal);
+                                setGuessTexts(prev => {
+                                  const n = [...prev];
+                                  n[idx] = "";
+                                  return n;
+                                });
+                              }}
+                              className="flex items-center gap-1.5 mt-0.5"
+                            >
+                              <input
+                                type="text"
+                                placeholder="Guess..."
+                                value={guessTexts[idx] || ""}
+                                onChange={(e) => setGuessTexts(prev => {
+                                  const n = [...prev];
+                                  n[idx] = e.target.value;
+                                  return n;
+                                })}
+                                className="flex-grow min-w-0 bg-slate-50 border border-slate-200 focus:border-indigo-500 rounded-lg px-2 py-1 text-[11px] focus:outline-none font-semibold text-slate-700"
+                              />
+                              <button
+                                type="submit"
+                                className="w-7 h-7 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white flex items-center justify-center shrink-0 cursor-pointer active-scale"
+                              >
+                                <span className="material-symbols-outlined text-[14px]">done</span>
+                              </button>
+                            </form>
+                          ) : (
+                            <div className="text-[10px] font-bold text-emerald-600 bg-emerald-50 border border-emerald-200/50 rounded-lg px-2 py-1 flex items-center justify-center gap-0.5 mt-1 select-none">
+                              <span className="material-symbols-outlined text-[12px] font-bold">check_circle</span> Correct!
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Column 2: OPPONENT (Their Progress) */}
+                <div className="flex flex-col gap-3">
+                  <div className="text-center bg-pink-50 border border-pink-100 rounded-xl py-1.5 px-2">
+                    <span className="text-[9px] font-black text-pink-700 uppercase tracking-wide block">Opponent (Guessing)</span>
+                    <span className="block text-[10px] font-bold text-slate-500 mt-0.5">{opponentScore} / {wordCount} Guessed</span>
+                  </div>
+
+                  <div className="space-y-2.5">
+                    {mySelections?.words?.map((word, idx) => {
+                      const hasOpponentGuessed = opponentGuesses.includes(word.toLowerCase());
+                      const revealedCount = opponentGuessesObj?.revealedLetters?.[idx] || 1;
+
+                      let clueString = "";
+                      for (let c = 0; c < word.length; c++) {
+                        if (c < revealedCount || hasOpponentGuessed) {
+                          clueString += word[c].toUpperCase() + " ";
+                        } else {
+                          clueString += "_ ";
+                        }
+                      }
+
+                      return (
+                        <div key={idx} className="bg-white border border-slate-200 rounded-xl p-3 shadow-sm flex flex-col gap-1">
+                          <div className="text-[10px] font-bold text-slate-400">Word {idx + 1} ({word.length} letters)</div>
+                          <div className={`font-mono text-xs font-black tracking-widest py-1 ${hasOpponentGuessed ? 'text-pink-600 font-black' : 'text-slate-600'}`}>
+                            {clueString}
+                          </div>
+                          {hasOpponentGuessed ? (
+                            <div className="text-[10px] font-bold text-pink-600 bg-pink-50 border border-pink-200/50 rounded-lg px-2 py-1 flex items-center justify-center gap-0.5 mt-1 select-none">
+                              <span className="material-symbols-outlined text-[12px] font-bold">check_circle</span> Solved!
+                            </div>
+                          ) : (
+                            <div className="text-[9px] font-bold text-slate-400 bg-slate-100/80 border border-slate-200/40 rounded-lg px-2 py-1 flex items-center justify-center gap-0.5 mt-1 select-none uppercase tracking-wide">
+                              <span className="material-symbols-outlined text-[10px] animate-pulse">sync</span> Solving...
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                </div>
+
+              </div>
+
+              {/* Instructions banner */}
+              <div className="bg-slate-50 border border-slate-200/60 rounded-xl p-3 text-center">
+                <p className="text-[10px] text-slate-500 font-semibold leading-normal">
+                  Solve your opponent's words before they solve yours! Incorrect guesses reveal hints.
+                </p>
+              </div>
+            </div>
           ) : (
             <div className="flex-grow flex flex-col py-2 gap-4">
 
@@ -1229,9 +1643,13 @@ export default function GameClient({ game, user, initialMessages }) {
                         : (gameState.winnerId === null
                           ? "It's a draw! Well played by both players."
                           : "Defeat! Your opponent aligned three symbols first."))
-                      : (gameState.winnerId === user.id
-                        ? "Outstanding prediction! You successfully pinpointed all enemy blocks."
-                        : "The enemy coordinate search revealed all your secret shields first.")))
+                      : (gameState.mode === "WORD_GUESS"
+                        ? (gameState.winnerId === user.id
+                          ? "Victory! You successfully guessed all of your opponent's words first!"
+                          : "Defeat! Your opponent solved your word chain first.")
+                        : (gameState.winnerId === user.id
+                          ? "Outstanding prediction! You successfully pinpointed all enemy blocks."
+                          : "The enemy coordinate search revealed all your secret shields first."))))
                 }
               </p>
 

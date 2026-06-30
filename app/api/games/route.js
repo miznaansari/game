@@ -10,7 +10,7 @@ export async function POST(request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { receiverId, mode = "BATTLE" } = await request.json();
+    const { receiverId, mode = "BATTLE", wordCount = 5 } = await request.json();
 
     if (!receiverId) {
       return NextResponse.json({ error: "Receiver ID is required" }, { status: 400 });
@@ -36,6 +36,8 @@ export async function POST(request) {
       memoryGrid = doubled;
     } else if (mode === "TICTACTOE") {
       memoryGrid = Array(9).fill("");
+    } else if (mode === "WORD_GUESS") {
+      memoryGrid = { wordCount };
     }
 
     // Create game record
@@ -56,6 +58,9 @@ export async function POST(request) {
         ...(mode === "TICTACTOE" ? {
           memoryGrid,
         } : {}),
+        ...(mode === "WORD_GUESS" ? {
+          memoryGrid,
+        } : {}),
       },
     });
 
@@ -74,6 +79,9 @@ export async function POST(request) {
       } else if (mode === "TICTACTOE") {
         title = "1v1 Tic Tac Toe Invite! ❌⭕";
         message = `${user.name || user.email} invited you to play Tic Tac Toe! ❌⭕`;
+      } else if (mode === "WORD_GUESS") {
+        title = "1v1 Word Guess Invite! 📝";
+        message = `${user.name || user.email} invited you to play ${wordCount} Word Guess! 📝`;
       }
 
       await sendPushNotification({

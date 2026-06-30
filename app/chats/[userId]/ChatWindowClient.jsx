@@ -293,7 +293,7 @@ export default function ChatWindowClient({ user, recipientId }) {
     }
   };
 
-  const handleSendGameInvite = async (mode) => {
+  const handleSendGameInvite = async (mode, wordCount = 5) => {
     if (creatingGame) return;
     setCreatingGame(true);
     setShowAttachmentMenu(false);
@@ -303,7 +303,7 @@ export default function ChatWindowClient({ user, recipientId }) {
       const gameRes = await fetch("/api/games", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ receiverId: recipientId, mode }),
+        body: JSON.stringify({ receiverId: recipientId, mode, wordCount }),
       });
 
       if (!gameRes.ok) throw new Error("Failed to create game");
@@ -315,6 +315,8 @@ export default function ChatWindowClient({ user, recipientId }) {
         inviteText = "Challenged you to play Emoji Memory Match! 🧩";
       } else if (mode === "TICTACTOE") {
         inviteText = "Challenged you to play Tic Tac Toe! ❌⭕";
+      } else if (mode === "WORD_GUESS") {
+        inviteText = `Challenged you to play ${wordCount} Word Guess! 📝`;
       }
 
       const msgRes = await fetch(`/api/chats/${recipientId}`, {
@@ -456,6 +458,9 @@ export default function ChatWindowClient({ user, recipientId }) {
               const isFinished = gameInfo?.status === "FINISHED";
               
               let statusText = isMe ? "You challenged them to a match!" : "Challenged you to a match!";
+              if (inviteMode === "WORD_GUESS") {
+                statusText = isMe ? "You challenged them to a Word Guess match!" : "Challenged you to a Word Guess match!";
+              }
               if (isFinished) {
                 const winnerName = gameInfo.winnerId === user.id 
                   ? "You" 
@@ -474,19 +479,19 @@ export default function ChatWindowClient({ user, recipientId }) {
                     {/* Mode logo overlay */}
                     <div className="absolute -top-3 -right-3 text-on-surface/5 group-hover:scale-110 transition-transform">
                       <span className="material-symbols-outlined text-[64px]">
-                        {inviteMode === "MEMORY" ? "extension" : (inviteMode === "TICTACTOE" ? "grid_3x3" : "grid_view")}
+                        {inviteMode === "MEMORY" ? "extension" : (inviteMode === "TICTACTOE" ? "grid_3x3" : (inviteMode === "WORD_GUESS" ? "notes" : "grid_view"))}
                       </span>
                     </div>
 
                     <div className="flex items-center space-x-2.5 mb-2 relative">
                       <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
                         <span className="material-symbols-outlined text-[20px]">
-                          {inviteMode === "MEMORY" ? "extension" : (inviteMode === "TICTACTOE" ? "grid_3x3" : "grid_view")}
+                          {inviteMode === "MEMORY" ? "extension" : (inviteMode === "TICTACTOE" ? "grid_3x3" : (inviteMode === "WORD_GUESS" ? "notes" : "grid_view"))}
                         </span>
                       </div>
                       <div>
                         <h5 className="font-display font-extrabold text-xs text-on-surface">
-                          {inviteMode === "MEMORY" ? "Memory Match Challenge 🧩" : (inviteMode === "TICTACTOE" ? "Tic Tac Toe Challenge ❌⭕" : "Battle Grid Challenge 🎮")}
+                          {inviteMode === "MEMORY" ? "Memory Match Challenge 🧩" : (inviteMode === "TICTACTOE" ? "Tic Tac Toe Challenge ❌⭕" : (inviteMode === "WORD_GUESS" ? "Word Guess Challenge 📝" : "Battle Grid Challenge 🎮"))}
                         </h5>
                         <p className="text-[9px] text-outline uppercase tracking-wider font-semibold">1v1 Mode</p>
                       </div>
@@ -602,6 +607,45 @@ export default function ChatWindowClient({ user, recipientId }) {
               </div>
               <span className="font-display font-extrabold text-[11px] text-on-surface mb-0.5">Tic Tac Toe</span>
               <span className="text-[8px] text-outline leading-tight font-medium">3-in-a-row classic</span>
+            </button>
+
+            {/* Word Guess 4 */}
+            <button
+              onClick={() => handleSendGameInvite("WORD_GUESS", 4)}
+              disabled={creatingGame}
+              className="flex flex-col items-center justify-center p-3 bg-surface-container rounded-2xl hover:bg-emerald-500/5 active-scale cursor-pointer transition-all border border-outline-variant/10 text-center"
+            >
+              <div className="w-10 h-10 rounded-full bg-emerald-500/10 text-emerald-600 flex items-center justify-center mb-2">
+                <span className="material-symbols-outlined text-[24px]">notes</span>
+              </div>
+              <span className="font-display font-extrabold text-[11px] text-on-surface mb-0.5">Word Guess 4</span>
+              <span className="text-[8px] text-outline leading-tight font-medium">4 words chain</span>
+            </button>
+
+            {/* Word Guess 5 */}
+            <button
+              onClick={() => handleSendGameInvite("WORD_GUESS", 5)}
+              disabled={creatingGame}
+              className="flex flex-col items-center justify-center p-3 bg-surface-container rounded-2xl hover:bg-purple-500/5 active-scale cursor-pointer transition-all border border-outline-variant/10 text-center"
+            >
+              <div className="w-10 h-10 rounded-full bg-purple-500/10 text-purple-600 flex items-center justify-center mb-2">
+                <span className="material-symbols-outlined text-[24px]">notes</span>
+              </div>
+              <span className="font-display font-extrabold text-[11px] text-on-surface mb-0.5">Word Guess 5</span>
+              <span className="text-[8px] text-outline leading-tight font-medium">5 words chain</span>
+            </button>
+
+            {/* Word Guess 6 */}
+            <button
+              onClick={() => handleSendGameInvite("WORD_GUESS", 6)}
+              disabled={creatingGame}
+              className="flex flex-col items-center justify-center p-3 bg-surface-container rounded-2xl hover:bg-rose-500/5 active-scale cursor-pointer transition-all border border-outline-variant/10 text-center"
+            >
+              <div className="w-10 h-10 rounded-full bg-rose-500/10 text-rose-600 flex items-center justify-center mb-2">
+                <span className="material-symbols-outlined text-[24px]">notes</span>
+              </div>
+              <span className="font-display font-extrabold text-[11px] text-on-surface mb-0.5">Word Guess 6</span>
+              <span className="text-[8px] text-outline leading-tight font-medium">6 words chain</span>
             </button>
           </div>
         </div>
