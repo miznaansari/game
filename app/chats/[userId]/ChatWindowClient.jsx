@@ -217,7 +217,6 @@ export default function ChatWindowClient({ user, recipientId }) {
     };
 
     window.addEventListener("global-direct-message-received", handleGlobalEvent);
-    activeSocket.on("direct-message-received", handleMessageReceived);
     activeSocket.on("friend-status-changed", handleFriendStatusChanged);
 
     // Query online status for recipient on load
@@ -235,7 +234,6 @@ export default function ChatWindowClient({ user, recipientId }) {
 
     return () => {
       window.removeEventListener("global-direct-message-received", handleGlobalEvent);
-      activeSocket.off("direct-message-received", handleMessageReceived);
       activeSocket.off("friend-status-changed", handleFriendStatusChanged);
     };
   }, [user.id, recipientId]);
