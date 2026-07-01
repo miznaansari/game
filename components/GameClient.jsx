@@ -64,6 +64,13 @@ export default function GameClient({ game, user, initialMessages }) {
     }
   };
 
+  const getInitial = (u) => {
+    if (!u) return "?";
+    if (u.name) return u.name.trim().charAt(0).toUpperCase();
+    if (u.email) return u.email.trim().charAt(0).toUpperCase();
+    return "?";
+  };
+
   // Memory Match States
   const [flippedCards, setFlippedCards] = useState([]);
   const [revealedEmojis, setRevealedEmojis] = useState({});
@@ -274,6 +281,41 @@ export default function GameClient({ game, user, initialMessages }) {
       } else {
         if (move.isWinner) {
           triggerHaptic([300, 100, 300]);
+        } else {
+          triggerHaptic(20);
+        }
+      }
+    });
+
+    newSocket.on("dots-move-result", ({ game, move }) => {
+      console.log("CLIENT: dots-move-result received", { game, move });
+      triggerHaptic(20);
+      if (game) {
+        setGameState(prev => ({ 
+          ...game, 
+          player1: game.player1 || prev.player1, 
+          player2: game.player2 || prev.player2, 
+          winner: game.winner || prev.winner,
+          player1Selections: game.player1Selections ?? prev.player1Selections,
+          player2Selections: game.player2Selections ?? prev.player2Selections,
+          player1Guesses: game.player1Guesses ?? prev.player1Guesses,
+          player2Guesses: game.player2Guesses ?? prev.player2Guesses,
+        }));
+      }
+      if (move.userId === user.id) {
+        if (move.isWinner) {
+          triggerHaptic([150, 50, 150, 50, 250]);
+          triggerConfetti();
+        } else if (move.completedBoxesCount > 0) {
+          triggerHaptic([100, 50, 100]);
+        } else {
+          triggerHaptic(40);
+        }
+      } else {
+        if (move.isWinner) {
+          triggerHaptic([300, 100, 300]);
+        } else if (move.completedBoxesCount > 0) {
+          triggerHaptic([100, 50, 100]);
         } else {
           triggerHaptic(20);
         }
@@ -1449,6 +1491,213 @@ export default function GameClient({ game, user, initialMessages }) {
                   {isMyTurn
                     ? "Your Turn! Tap any empty cell to place your symbol. Align 3 to win!"
                     : "Enemy is thinking... Plan your next move!"}
+                </p>
+              </div>
+            </div>
+          ) : gameState.mode === "DOTS" ? (
+            <div className="flex-grow flex flex-col py-2 gap-4">
+              {/* Score and turn panel */}
+              <div className="grid grid-cols-3 items-center light-card rounded-2xl p-4 shadow-sm border border-slate-100/80 bg-white/40 backdrop-blur-md">
+                {/* Player 1 (You) */}
+                <div className="flex flex-col items-center">
+                  <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">You (Score)</span>
+                  <span className="font-display font-black text-2xl text-indigo-600 mt-1">
+                    {isPlayer1 ? (gameState.player1Score || 0) : (gameState.player2Score || 0)}
+                  </span>
+                </div>
+
+                {/* Turn Info */}
+                <div className="flex flex-col items-center border-x border-slate-200/60 py-1">
+                  <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider font-bold">Dots & Boxes</span>
+                  <span className={`font-display font-extrabold text-[11px] mt-1 text-center whitespace-nowrap ${isMyTurn ? "text-emerald-600 animate-pulse font-extrabold" : "text-slate-400 font-bold"}`}>
+                    {isMyTurn ? "👉 YOUR TURN" : "⏳ ENEMY TURN"}
+                  </span>
+                </div>
+
+                {/* Player 2 (Opponent) */}
+                <div className="flex flex-col items-center">
+                  <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider truncate max-w-[80px]">
+                    {opponent?.name || opponent?.email.split("@")[0]}
+                  </span>
+                  <span className="font-display font-black text-2xl text-pink-600 mt-1">
+                    {!isPlayer1 ? (gameState.player1Score || 0) : (gameState.player2Score || 0)}
+                  </span>
+                </div>
+              </div>
+
+              {/* Dots and Boxes dynamic board */}
+              <div className="flex-grow flex items-center justify-center py-4">
+                {(() => {
+                  const boardData = parseJsonField(gameState.memoryGrid) || { rows: 4, cols: 4, lines: {}, boxes: {} };
+                  const boxRows = parseInt(boardData.rows) || 4;
+                  const boxCols = parseInt(boardData.cols) || 4;
+                  const lines = boardData.lines || {};
+                  const boxes = boardData.boxes || {};
+
+                  // Dimensions in alternating elements
+                  const gridRowsCount = boxRows * 2 + 1;
+                  const gridColsCount = boxCols * 2 + 1;
+
+                  // CSS Grid template inline styles
+                  const gridTemplateColumns = Array.from({ length: gridColsCount })
+                    .map((_, idx) => (idx % 2 === 0 ? "10px" : "1fr"))
+                    .join(" ");
+
+                  const gridTemplateRows = Array.from({ length: gridRowsCount })
+                    .map((_, idx) => (idx % 2 === 0 ? "10px" : "1fr"))
+                    .join(" ");
+
+                  // Generate all grid items
+                  const cells = [];
+                  for (let r = 0; r < gridRowsCount; r++) {
+                    for (let c = 0; c < gridColsCount; c++) {
+                      const isDot = r % 2 === 0 && c % 2 === 0;
+                      const isHLine = r % 2 === 0 && c % 2 !== 0;
+                      const isVLine = r % 2 !== 0 && c % 2 === 0;
+                      const isBox = r % 2 !== 0 && c % 2 !== 0;
+
+                      if (isDot) {
+                        cells.push(
+                          <div 
+                            key={`dot-${r}-${c}`} 
+                            className="w-2.5 h-2.5 rounded-full bg-slate-400 border border-white/60 shadow-sm"
+                          />
+                        );
+                      } else if (isHLine) {
+                        const lineR = r / 2;
+                        const lineC = (c - 1) / 2;
+                        const key = `H-${lineR}-${lineC}`;
+                        const claimerId = lines[key];
+                        const isClaimed = !!claimerId;
+                        const isClaimedByMe = claimerId === user.id;
+
+                        let lineBg = "bg-slate-200/40 hover:bg-indigo-200/40";
+                        if (isClaimed) {
+                          lineBg = isClaimedByMe ? "bg-gradient-to-r from-primary to-indigo-500 shadow-sm" : "bg-gradient-to-r from-pink-500 to-rose-500 shadow-sm";
+                        }
+
+                        cells.push(
+                          <button
+                            key={key}
+                            disabled={isClaimed || !isMyTurn}
+                            onClick={() => {
+                              if (!isMyTurn) {
+                                setWarningToast("Wait, it's the enemy's turn!");
+                                if (window.warningTimeout) clearTimeout(window.warningTimeout);
+                                window.warningTimeout = setTimeout(() => setWarningToast(null), 1500);
+                                return;
+                              }
+                              socket.emit("make-dots-move", {
+                                gameId: gameState.id,
+                                userId: user.id,
+                                lineKey: key,
+                              });
+                            }}
+                            className={`h-2.5 w-full rounded-full transition-all duration-200 relative group cursor-pointer ${lineBg} ${!isClaimed && isMyTurn ? "hover:scale-y-125" : ""}`}
+                            title={`H-Line ${lineR},${lineC}`}
+                          >
+                            {!isClaimed && isMyTurn && (
+                              <span className="absolute inset-0 bg-indigo-500/20 opacity-0 group-hover:opacity-100 rounded-full transition-opacity pointer-events-none" />
+                            )}
+                          </button>
+                        );
+                      } else if (isVLine) {
+                        const lineR = (r - 1) / 2;
+                        const lineC = c / 2;
+                        const key = `V-${lineR}-${lineC}`;
+                        const claimerId = lines[key];
+                        const isClaimed = !!claimerId;
+                        const isClaimedByMe = claimerId === user.id;
+
+                        let lineBg = "bg-slate-200/40 hover:bg-indigo-200/40";
+                        if (isClaimed) {
+                          lineBg = isClaimedByMe ? "bg-gradient-to-b from-primary to-indigo-500 shadow-sm" : "bg-gradient-to-b from-pink-500 to-rose-500 shadow-sm";
+                        }
+
+                        cells.push(
+                          <button
+                            key={key}
+                            disabled={isClaimed || !isMyTurn}
+                            onClick={() => {
+                              if (!isMyTurn) {
+                                setWarningToast("Wait, it's the enemy's turn!");
+                                if (window.warningTimeout) clearTimeout(window.warningTimeout);
+                                window.warningTimeout = setTimeout(() => setWarningToast(null), 1500);
+                                return;
+                              }
+                              socket.emit("make-dots-move", {
+                                gameId: gameState.id,
+                                userId: user.id,
+                                lineKey: key,
+                              });
+                            }}
+                            className={`w-2.5 h-full rounded-full transition-all duration-200 relative group cursor-pointer ${lineBg} ${!isClaimed && isMyTurn ? "hover:scale-x-125" : ""}`}
+                            title={`V-Line ${lineR},${lineC}`}
+                          >
+                            {!isClaimed && isMyTurn && (
+                              <span className="absolute inset-0 bg-indigo-500/20 opacity-0 group-hover:opacity-100 rounded-full transition-opacity pointer-events-none" />
+                            )}
+                          </button>
+                        );
+                      } else if (isBox) {
+                        const boxR = (r - 1) / 2;
+                        const boxC = (c - 1) / 2;
+                        const key = `${boxR}-${boxC}`;
+                        const claimerId = boxes[key];
+                        const isClaimed = !!claimerId;
+                        const isClaimedByMe = claimerId === user.id;
+
+                        let boxContent = "";
+                        let boxBg = "bg-transparent";
+
+                        if (isClaimed) {
+                          const initial = isClaimedByMe ? getInitial(user) : getInitial(opponent);
+                          boxContent = initial;
+                          boxBg = isClaimedByMe 
+                            ? "bg-indigo-500/10 border border-indigo-200/35 text-indigo-700 font-extrabold text-[13px] shadow-inner" 
+                            : "bg-pink-500/10 border border-pink-200/35 text-pink-700 font-extrabold text-[13px] shadow-inner";
+                        }
+
+                        cells.push(
+                          <div
+                            key={key}
+                            className={`flex items-center justify-center rounded-xl aspect-square transition-all duration-300 font-display select-none ${boxBg}`}
+                          >
+                            {boxContent}
+                          </div>
+                        );
+                      }
+                    }
+                  }
+
+                  // Responsive sizing depending on dimension
+                  let boardMaxWidth = "max-w-[320px]";
+                  if (boxCols > 6) {
+                    boardMaxWidth = "max-w-[400px]";
+                  } else if (boxCols > 4) {
+                    boardMaxWidth = "max-w-[360px]";
+                  }
+
+                  return (
+                    <div 
+                      className={`grid gap-1.5 w-full ${boardMaxWidth} aspect-square mx-auto p-4 bg-slate-50/50 backdrop-blur-sm border border-slate-200/60 rounded-3xl shadow-inner relative overflow-hidden`}
+                      style={{
+                        gridTemplateColumns,
+                        gridTemplateRows
+                      }}
+                    >
+                      {cells}
+                    </div>
+                  );
+                })()}
+              </div>
+
+              {/* Instructions banner */}
+              <div className="bg-slate-50/80 backdrop-blur-xs border border-slate-200/60 rounded-xl p-3 text-center">
+                <p className="text-[10px] text-slate-500 font-semibold leading-normal font-medium">
+                  {isMyTurn
+                    ? "Your Turn! Click any dashed gap between dots. Complete boxes to score and move again!"
+                    : "Enemy is choosing a line... Keep track of boxes!"}
                 </p>
               </div>
             </div>

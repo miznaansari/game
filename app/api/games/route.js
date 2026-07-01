@@ -10,7 +10,7 @@ export async function POST(request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { receiverId, mode = "BATTLE", wordCount = 5 } = await request.json();
+    const { receiverId, mode = "BATTLE", wordCount = 5, boxRows = 4, boxCols = 4 } = await request.json();
 
     if (!receiverId) {
       return NextResponse.json({ error: "Receiver ID is required" }, { status: 400 });
@@ -23,6 +23,10 @@ export async function POST(request) {
     if (!opponent) {
       return NextResponse.json({ error: "Opponent not found" }, { status: 404 });
     }
+
+    // Validate custom grid dimensions for Dots & Boxes
+    const cleanBoxRows = Math.min(10, Math.max(2, parseInt(boxRows) || 4));
+    const cleanBoxCols = Math.min(10, Math.max(2, parseInt(boxCols) || 4));
 
     // Generate shuffled memory grid if MEMORY mode, or empty board if TICTACTOE
     let memoryGrid = null;
@@ -38,6 +42,13 @@ export async function POST(request) {
       memoryGrid = Array(9).fill("");
     } else if (mode === "WORD_GUESS") {
       memoryGrid = { wordCount };
+    } else if (mode === "DOTS") {
+      memoryGrid = {
+        rows: cleanBoxRows,
+        cols: cleanBoxCols,
+        lines: {},
+        boxes: {}
+      };
     }
 
     // Create game record
@@ -45,7 +56,7 @@ export async function POST(request) {
       data: {
         player1Id: user.id,
         player2Id: receiverId,
-        status: (mode === "MEMORY" || mode === "TICTACTOE") ? "PLAYING" : "SELECTING",
+        status: (mode === "MEMORY" || mode === "TICTACTOE" || mode === "DOTS") ? "PLAYING" : "SELECTING",
         mode,
         turn: user.id, // Player 1 starts
         ...(mode === "MEMORY" ? {
@@ -60,6 +71,11 @@ export async function POST(request) {
         } : {}),
         ...(mode === "WORD_GUESS" ? {
           memoryGrid,
+        } : {}),
+        ...(mode === "DOTS" ? {
+          memoryGrid,
+          player1Score: 0,
+          player2Score: 0,
         } : {}),
       },
     });
@@ -82,6 +98,9 @@ export async function POST(request) {
       } else if (mode === "WORD_GUESS") {
         title = "1v1 Word Guess Invite! 📝";
         message = `${user.name || user.email} invited you to play ${wordCount} Word Guess! 📝`;
+      } else if (mode === "DOTS") {
+        title = "1v1 Dots & Boxes Invite! ❌⭕";
+        message = `${user.name || user.email} invited you to play a ${cleanBoxRows}x${cleanBoxCols} Dots & Boxes game! 🎮`;
       }
 
       await sendPushNotification({

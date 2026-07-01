@@ -27,6 +27,9 @@ export default function ChatWindowClient({ user, recipientId }) {
   const [gifSearchQuery, setGifSearchQuery] = useState("");
   const [gifs, setGifs] = useState([]);
   const [gifLoading, setGifLoading] = useState(false);
+  const [showDotsModal, setShowDotsModal] = useState(false);
+  const [dotsRowsInput, setDotsRowsInput] = useState(4);
+  const [dotsColsInput, setDotsColsInput] = useState(4);
 
   const EMOJIS = [
     "😀", "😂", "🤣", "😍", "🥰", "😘", "😜", "😎", "🤩", "🥳", 
@@ -324,7 +327,7 @@ export default function ChatWindowClient({ user, recipientId }) {
     }
   };
 
-  const handleSendGameInvite = async (mode, wordCount = 5) => {
+  const handleSendGameInvite = async (mode, wordCount = 5, boxRows = 4, boxCols = 4) => {
     if (creatingGame) return;
     setCreatingGame(true);
     setShowAttachmentMenu(false);
@@ -334,7 +337,7 @@ export default function ChatWindowClient({ user, recipientId }) {
       const gameRes = await fetch("/api/games", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ receiverId: recipientId, mode, wordCount }),
+        body: JSON.stringify({ receiverId: recipientId, mode, wordCount, boxRows, boxCols }),
       });
 
       if (!gameRes.ok) throw new Error("Failed to create game");
@@ -348,6 +351,8 @@ export default function ChatWindowClient({ user, recipientId }) {
         inviteText = "Challenged you to play Tic Tac Toe! ❌⭕";
       } else if (mode === "WORD_GUESS") {
         inviteText = `Challenged you to play ${wordCount} Word Guess! 📝`;
+      } else if (mode === "DOTS") {
+        inviteText = `Challenged you to play ${boxRows}x${boxCols} Dots & Boxes! 🎮`;
       }
 
       const msgRes = await fetch(`/api/chats/${recipientId}`, {
@@ -426,6 +431,7 @@ export default function ChatWindowClient({ user, recipientId }) {
   const memoryStats = getStatsByMode("MEMORY");
   const tictactoeStats = getStatsByMode("TICTACTOE");
   const wordGuessStats = getStatsByMode("WORD_GUESS");
+  const dotsStats = getStatsByMode("DOTS");
 
   const overallTotal = completedGamesWithFriend.length;
   const overallWins = completedGamesWithFriend.filter((g) => g.winnerId === user.id).length;
@@ -559,19 +565,19 @@ export default function ChatWindowClient({ user, recipientId }) {
                     {/* Mode logo overlay */}
                     <div className="absolute -top-3 -right-3 text-slate-400/10 group-hover:scale-110 transition-transform">
                       <span className="material-symbols-outlined text-[64px]">
-                        {inviteMode === "MEMORY" ? "extension" : (inviteMode === "TICTACTOE" ? "grid_3x3" : (inviteMode === "WORD_GUESS" ? "notes" : "grid_view"))}
+                        {inviteMode === "MEMORY" ? "extension" : (inviteMode === "TICTACTOE" ? "grid_3x3" : (inviteMode === "WORD_GUESS" ? "notes" : (inviteMode === "DOTS" ? "grid_on" : "grid_view")))}
                       </span>
                     </div>
 
                     <div className="flex items-center space-x-2.5 mb-2 relative">
                       <div className="w-8 h-8 rounded-lg bg-indigo-100 border border-indigo-200/50 text-indigo-700 flex items-center justify-center shrink-0">
                         <span className="material-symbols-outlined text-[20px]">
-                          {inviteMode === "MEMORY" ? "extension" : (inviteMode === "TICTACTOE" ? "grid_3x3" : (inviteMode === "WORD_GUESS" ? "notes" : "grid_view"))}
+                          {inviteMode === "MEMORY" ? "extension" : (inviteMode === "TICTACTOE" ? "grid_3x3" : (inviteMode === "WORD_GUESS" ? "notes" : (inviteMode === "DOTS" ? "grid_on" : "grid_view")))}
                         </span>
                       </div>
                       <div>
                         <h5 className="font-display font-black text-xs text-slate-800">
-                          {inviteMode === "MEMORY" ? "Memory Match Challenge 🧩" : (inviteMode === "TICTACTOE" ? "Tic Tac Toe Challenge ❌⭕" : (inviteMode === "WORD_GUESS" ? "Word Guess Challenge 📝" : "Battle Grid Challenge 🎮"))}
+                          {inviteMode === "MEMORY" ? "Memory Match Challenge 🧩" : (inviteMode === "TICTACTOE" ? "Tic Tac Toe Challenge ❌⭕" : (inviteMode === "WORD_GUESS" ? "Word Guess Challenge 📝" : (inviteMode === "DOTS" ? "Dots & Boxes Challenge 🎮" : "Battle Grid Challenge 🎮")))}
                         </h5>
                         <p className="text-[8px] text-indigo-800 uppercase tracking-widest font-black">1v1 Mode</p>
                       </div>
@@ -726,6 +732,22 @@ export default function ChatWindowClient({ user, recipientId }) {
               </div>
               <span className="font-display font-black text-[10px] text-slate-800 mb-0.5">Word Guess 6</span>
               <span className="text-[7px] text-slate-500 font-bold leading-tight font-medium">6 words chain</span>
+            </button>
+
+            {/* Dots & Boxes */}
+            <button
+              onClick={() => {
+                setShowAttachmentMenu(false);
+                setShowDotsModal(true);
+              }}
+              disabled={creatingGame}
+              className="flex flex-col items-center justify-center p-3 bg-white/50 hover:bg-white border border-white/80 rounded-2xl active-scale cursor-pointer transition-all text-center shadow-sm"
+            >
+              <div className="w-9 h-9 rounded-full bg-indigo-500/10 text-indigo-600 flex items-center justify-center mb-1.5 shrink-0">
+                <span className="material-symbols-outlined text-[20px]">grid_on</span>
+              </div>
+              <span className="font-display font-black text-[10px] text-slate-800 mb-0.5">Dots & Boxes</span>
+              <span className="text-[7px] text-slate-500 font-bold leading-tight font-medium">Custom grid arena</span>
             </button>
           </div>
         </div>
@@ -1055,6 +1077,27 @@ export default function ChatWindowClient({ user, recipientId }) {
                     </div>
                   </div>
                 </div>
+
+                {/* Game 5: Dots & Boxes */}
+                <div className="bg-surface-container-low border border-outline-variant/30 rounded-xl p-3.5 flex flex-col gap-2.5">
+                  <div className="text-center font-display font-black text-xs text-indigo-600 uppercase tracking-widest pb-1.5 border-b border-outline-variant/10 flex items-center justify-center gap-1.5">
+                    <span className="material-symbols-outlined text-[16px]">grid_on</span>
+                    Dots & Boxes
+                  </div>
+                  <div className="flex justify-between items-center text-xs">
+                    <div className="w-[42%] text-left flex items-center gap-1 overflow-hidden shrink-0">
+                      <span className="font-bold text-on-surface truncate">You</span>
+                      <span className="text-[10px] text-outline font-extrabold shrink-0">({dotsStats.wins})</span>
+                    </div>
+                    <div className="w-[16%] text-center font-display font-black text-xs text-primary shrink-0">
+                      {dotsStats.winRate}%
+                    </div>
+                    <div className="w-[42%] text-right flex items-center justify-end gap-1 overflow-hidden shrink-0">
+                      <span className="text-[10px] text-outline font-extrabold shrink-0">({dotsStats.losses})</span>
+                      <span className="font-bold text-on-surface truncate">{friend?.name || friend?.email.split("@")[0]}</span>
+                    </div>
+                  </div>
+                </div>
               </div>
 
               {/* Recent Games List */}
@@ -1074,11 +1117,11 @@ export default function ChatWindowClient({ user, recipientId }) {
                         <div key={game.id} className="flex justify-between items-center p-2.5 bg-surface-container-low border border-outline-variant/20 rounded-xl">
                           <div className="flex items-center gap-2">
                             <span className="material-symbols-outlined text-[16px] text-outline">
-                              {game.mode === "MEMORY" ? "extension" : (game.mode === "TICTACTOE" ? "grid_3x3" : (game.mode === "WORD_GUESS" ? "notes" : "grid_view"))}
+                              {game.mode === "MEMORY" ? "extension" : (game.mode === "TICTACTOE" ? "grid_3x3" : (game.mode === "WORD_GUESS" ? "notes" : (game.mode === "DOTS" ? "grid_on" : "grid_view")))}
                             </span>
                             <div className="flex flex-col">
                               <span className="font-bold text-[11px] text-on-surface leading-tight">
-                                {game.mode === "MEMORY" ? "Memory Match" : (game.mode === "TICTACTOE" ? "Tic Tac Toe" : (game.mode === "WORD_GUESS" ? "Word Guess" : "Grid Battleship"))}
+                                {game.mode === "MEMORY" ? "Memory Match" : (game.mode === "TICTACTOE" ? "Tic Tac Toe" : (game.mode === "WORD_GUESS" ? "Word Guess" : (game.mode === "DOTS" ? "Dots & Boxes" : "Grid Battleship")))}
                               </span>
                               <span className="text-[8px] text-outline mt-0.5">{new Date(game.updatedAt).toLocaleDateString()}</span>
                             </div>
@@ -1101,6 +1144,103 @@ export default function ChatWindowClient({ user, recipientId }) {
           )}
         </div>
       </div>
+
+      {/* Dots & Boxes Configuration Modal */}
+      {showDotsModal && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4">
+          <div className="bg-white/90 backdrop-blur-xl border border-white/60 w-full max-w-[280px] rounded-3xl p-5 shadow-2xl animate-scale-up text-on-surface">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-8 h-8 rounded-lg bg-indigo-100 border border-indigo-200/50 text-indigo-700 flex items-center justify-center">
+                <span className="material-symbols-outlined text-[20px]">grid_on</span>
+              </div>
+              <div>
+                <h4 className="font-display font-black text-xs text-slate-800">Dots & Boxes Setup</h4>
+                <p className="text-[8px] text-slate-500 font-bold uppercase tracking-wider">Choose Grid Size (max 10x10)</p>
+              </div>
+            </div>
+
+            <div className="space-y-3.5 my-4">
+              {/* Rows Input */}
+              <div className="flex flex-col gap-1">
+                <label className="text-[9px] font-black text-slate-500 uppercase tracking-wide">Grid Height (Boxes)</label>
+                <div className="flex items-center gap-2">
+                  <button 
+                    type="button"
+                    onClick={() => setDotsRowsInput(r => Math.max(2, r - 1))}
+                    className="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 text-xs font-bold flex items-center justify-center border border-slate-200 cursor-pointer active-scale"
+                  >
+                    -
+                  </button>
+                  <input
+                    type="number"
+                    min="2"
+                    max="10"
+                    value={dotsRowsInput}
+                    onChange={(e) => setDotsRowsInput(Math.min(10, Math.max(2, parseInt(e.target.value) || 4)))}
+                    className="flex-1 text-center bg-white border border-slate-200 rounded-lg py-0.5 text-xs font-black text-slate-800 focus:outline-none focus:border-primary"
+                  />
+                  <button 
+                    type="button"
+                    onClick={() => setDotsRowsInput(r => Math.min(10, r + 1))}
+                    className="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 text-xs font-bold flex items-center justify-center border border-slate-200 cursor-pointer active-scale"
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+
+              {/* Columns Input */}
+              <div className="flex flex-col gap-1">
+                <label className="text-[9px] font-black text-slate-500 uppercase tracking-wide">Grid Width (Boxes)</label>
+                <div className="flex items-center gap-2">
+                  <button 
+                    type="button"
+                    onClick={() => setDotsColsInput(c => Math.max(2, c - 1))}
+                    className="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 text-xs font-bold flex items-center justify-center border border-slate-200 cursor-pointer active-scale"
+                  >
+                    -
+                  </button>
+                  <input
+                    type="number"
+                    min="2"
+                    max="10"
+                    value={dotsColsInput}
+                    onChange={(e) => setDotsColsInput(Math.min(10, Math.max(2, parseInt(e.target.value) || 4)))}
+                    className="flex-1 text-center bg-white border border-slate-200 rounded-lg py-0.5 text-xs font-black text-slate-800 focus:outline-none focus:border-primary"
+                  />
+                  <button 
+                    type="button"
+                    onClick={() => setDotsColsInput(c => Math.min(10, c + 1))}
+                    className="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 text-xs font-bold flex items-center justify-center border border-slate-200 cursor-pointer active-scale"
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-2 mt-4 pt-2 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setShowDotsModal(false)}
+                className="flex-1 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-black rounded-xl active-scale transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  handleSendGameInvite("DOTS", 5, dotsRowsInput, dotsColsInput);
+                  setShowDotsModal(false);
+                }}
+                className="flex-1 py-1.5 bg-gradient-to-r from-primary to-indigo-600 hover:from-primary-high hover:to-indigo-700 text-white text-[10px] font-black rounded-xl shadow-md active-scale transition-all cursor-pointer"
+              >
+                Send Invite
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

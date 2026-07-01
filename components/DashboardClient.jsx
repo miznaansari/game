@@ -38,8 +38,10 @@ export default function DashboardClient({ user, defaultTab = "home" }) {
   const [actionLoadingId, setActionLoadingId] = useState(null);
   const [inviteTargetId, setInviteTargetId] = useState(null);
   const [notificationsDisabled, setNotificationsDisabled] = useState(false);
-  const [inviteGameMode, setInviteGameMode] = useState(null); // BATTLE, MEMORY, TICTACTOE, WORD_GUESS
+  const [inviteGameMode, setInviteGameMode] = useState(null); // BATTLE, MEMORY, TICTACTOE, WORD_GUESS, DOTS
   const [wordCountSelection, setWordCountSelection] = useState(5); // 4, 5, 6
+  const [dotsRows, setDotsRows] = useState(4);
+  const [dotsCols, setDotsCols] = useState(4);
   const [modalSearchQuery, setModalSearchQuery] = useState("");
   const [currentSlide, setCurrentSlide] = useState(0);
 
@@ -240,7 +242,7 @@ export default function DashboardClient({ user, defaultTab = "home" }) {
     }
   };
 
-  const handleInviteToGame = async (receiverId, mode = "BATTLE", wordCount = 5) => {
+  const handleInviteToGame = async (receiverId, mode = "BATTLE", wordCount = 5, boxRows = 4, boxCols = 4) => {
     setActionLoadingId(receiverId);
     setInviteTargetId(null);
     setInviteGameMode(null);
@@ -248,7 +250,7 @@ export default function DashboardClient({ user, defaultTab = "home" }) {
       const res = await fetch("/api/games", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ receiverId, mode, wordCount }),
+        body: JSON.stringify({ receiverId, mode, wordCount, boxRows, boxCols }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to send invite");
@@ -582,7 +584,7 @@ export default function DashboardClient({ user, defaultTab = "home" }) {
                   Challenge Friends 🎮
                 </h3>
                 <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mt-0.5">
-                  Arena: {inviteGameMode === "MEMORY" ? "🧩 Memory Match" : (inviteGameMode === "TICTACTOE" ? "❌⭕ Tic Tac Toe" : (inviteGameMode === "WORD_GUESS" ? "📝 Word Guess" : "🎯 Grid Battleship"))}
+                  Arena: {inviteGameMode === "MEMORY" ? "🧩 Memory Match" : (inviteGameMode === "TICTACTOE" ? "❌⭕ Tic Tac Toe" : (inviteGameMode === "WORD_GUESS" ? "📝 Word Guess" : (inviteGameMode === "DOTS" ? "🎮 Dots & Boxes" : "🎯 Grid Battleship")))}
                 </p>
               </div>
               <button 
@@ -595,6 +597,70 @@ export default function DashboardClient({ user, defaultTab = "home" }) {
                 <span className="material-symbols-outlined text-[18px]">close</span>
               </button>
             </div>
+
+            {/* Dots & Boxes Configuration Sub-selection */}
+            {inviteGameMode === "DOTS" && (
+              <div className="bg-indigo-50/50 border border-indigo-100 rounded-2xl p-3.5 flex flex-col gap-2.5">
+                <span className="text-[10px] text-indigo-800 font-extrabold uppercase tracking-wider">Configure Grid Size</span>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[9px] font-black text-slate-500 uppercase tracking-wide">Rows (Height)</label>
+                    <div className="flex items-center gap-1.5">
+                      <button 
+                        type="button"
+                        onClick={() => setDotsRows(r => Math.max(2, r - 1))}
+                        className="w-7 h-7 rounded-lg bg-white border border-slate-200 flex items-center justify-center font-extrabold text-xs active-scale cursor-pointer"
+                      >
+                        -
+                      </button>
+                      <input 
+                        type="number"
+                        min="2"
+                        max="10"
+                        value={dotsRows}
+                        onChange={(e) => setDotsRows(Math.min(10, Math.max(2, parseInt(e.target.value) || 4)))}
+                        className="w-10 text-center bg-white border border-slate-200 rounded-lg py-0.5 text-xs font-black text-slate-800 focus:outline-none"
+                      />
+                      <button 
+                        type="button"
+                        onClick={() => setDotsRows(r => Math.min(10, r + 1))}
+                        className="w-7 h-7 rounded-lg bg-white border border-slate-200 flex items-center justify-center font-extrabold text-xs active-scale cursor-pointer"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[9px] font-black text-slate-500 uppercase tracking-wide">Cols (Width)</label>
+                    <div className="flex items-center gap-1.5">
+                      <button 
+                        type="button"
+                        onClick={() => setDotsCols(c => Math.max(2, c - 1))}
+                        className="w-7 h-7 rounded-lg bg-white border border-slate-200 flex items-center justify-center font-extrabold text-xs active-scale cursor-pointer"
+                      >
+                        -
+                      </button>
+                      <input 
+                        type="number"
+                        min="2"
+                        max="10"
+                        value={dotsCols}
+                        onChange={(e) => setDotsCols(Math.min(10, Math.max(2, parseInt(e.target.value) || 4)))}
+                        className="w-10 text-center bg-white border border-slate-200 rounded-lg py-0.5 text-xs font-black text-slate-800 focus:outline-none"
+                      />
+                      <button 
+                        type="button"
+                        onClick={() => setDotsCols(c => Math.min(10, c + 1))}
+                        className="w-7 h-7 rounded-lg bg-white border border-slate-200 flex items-center justify-center font-extrabold text-xs active-scale cursor-pointer"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Word Guess Word Count Sub-selection */}
             {inviteGameMode === "WORD_GUESS" && (
@@ -675,7 +741,7 @@ export default function DashboardClient({ user, defaultTab = "home" }) {
 
                         <button
                           disabled={actionLoadingId === friend.id}
-                          onClick={() => handleInviteToGame(friend.id, inviteGameMode, wordCountSelection)}
+                          onClick={() => handleInviteToGame(friend.id, inviteGameMode, wordCountSelection, dotsRows, dotsCols)}
                           className="px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-display font-black text-xs active-scale shadow-sm shrink-0 flex items-center justify-center min-w-[64px]"
                         >
                           {actionLoadingId === friend.id ? (
@@ -901,6 +967,22 @@ export default function DashboardClient({ user, defaultTab = "home" }) {
                         <p className="text-slate-600 text-[10px] font-bold mt-1 max-w-[170px] leading-relaxed">Build word chains and guess opponent secret list.</p>
                       </div>
                       <span className="text-[9px] font-black text-emerald-700 bg-emerald-50 border border-emerald-200/50 self-start px-3 py-1 rounded-xl group-hover:bg-emerald-600 group-hover:text-white transition-all shadow-sm">PLAY NOW</span>
+                    </div>
+
+                    {/* Game 5: Dots & Boxes */}
+                    <div 
+                      onClick={() => setInviteGameMode("DOTS")}
+                      className="relative overflow-hidden rounded-3xl card-shadow bg-gradient-to-br from-indigo-500/20 via-violet-500/10 to-purple-600/20 backdrop-blur-md p-4 h-48 flex flex-col justify-between active-scale transition-all hover:shadow-indigo-500/30 hover:shadow-2xl hover:-translate-y-1 cursor-pointer group border border-white/50"
+                    >
+                      <div className="absolute top-[-10px] right-[-10px] opacity-10 group-hover:scale-110 transition-transform duration-300">
+                        <span className="material-symbols-outlined text-[100px] text-indigo-600">grid_on</span>
+                      </div>
+                      <div>
+                        <span className="bg-indigo-100 text-indigo-800 text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider border border-indigo-200/50">Tactical Strategy</span>
+                        <h4 className="text-indigo-900 font-display text-base font-black mt-2 flex items-center gap-1">Dots & Boxes 🎮</h4>
+                        <p className="text-slate-600 text-[10px] font-bold mt-1 max-w-[170px] leading-relaxed">Connect dots to capture boxes on a custom grid size.</p>
+                      </div>
+                      <span className="text-[9px] font-black text-indigo-700 bg-indigo-50 border border-indigo-200/50 self-start px-3 py-1 rounded-xl group-hover:bg-indigo-600 group-hover:text-white transition-all shadow-sm">PLAY NOW</span>
                     </div>
                   </div>
                 </div>
@@ -1286,7 +1368,7 @@ export default function DashboardClient({ user, defaultTab = "home" }) {
                               {isWinner ? "Victory" : "Defeat"}
                             </span>
                             <h4 className="font-display font-extrabold text-sm text-on-surface">
-                              vs. {opponent.name || opponent.email} <span className="text-[10px] text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-full font-bold ml-1">{game.mode === "MEMORY" ? "🧩 Memory" : (game.mode === "TICTACTOE" ? "❌⭕ Tic Tac Toe" : (game.mode === "WORD_GUESS" ? "📝 Word Guess" : "🎯 Battle"))}</span>
+                              vs. {opponent.name || opponent.email} <span className="text-[10px] text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-full font-bold ml-1">{game.mode === "MEMORY" ? "🧩 Memory" : (game.mode === "TICTACTOE" ? "❌⭕ Tic Tac Toe" : (game.mode === "WORD_GUESS" ? "📝 Word Guess" : (game.mode === "DOTS" ? "🎮 Dots & Boxes" : "🎯 Battle")))}</span>
                             </h4>
                             <p className="text-[10px] text-outline font-semibold">
                               Played on {new Date(game.updatedAt).toLocaleDateString()}
@@ -1359,7 +1441,7 @@ export default function DashboardClient({ user, defaultTab = "home" }) {
                               <p className="font-bold text-sm text-on-surface flex items-center gap-1.5 flex-wrap">
                                 <span>vs {opponent.name || opponent.email}</span>
                                 <span className="text-[9px] text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-full font-bold">
-                                  {game.mode === "MEMORY" ? "🧩 Memory" : (game.mode === "TICTACTOE" ? "❌⭕ Tic Tac Toe" : (game.mode === "WORD_GUESS" ? "📝 Word Guess" : "🎯 Battle"))}
+                                  {game.mode === "MEMORY" ? "🧩 Memory" : (game.mode === "TICTACTOE" ? "❌⭕ Tic Tac Toe" : (game.mode === "WORD_GUESS" ? "📝 Word Guess" : (game.mode === "DOTS" ? "🎮 Dots & Boxes" : "🎯 Battle")))}
                                 </span>
                                 {isOpponentWaiting && (
                                   <span className="text-[8px] bg-emerald-500 text-white px-1.5 py-0.5 rounded-full font-black animate-pulse">WAITING</span>
