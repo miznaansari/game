@@ -43,6 +43,23 @@ export default function DashboardClient({ user, defaultTab = "home" }) {
   const [modalSearchQuery, setModalSearchQuery] = useState("");
   const [currentSlide, setCurrentSlide] = useState(0);
 
+  const [showGemsConfigModal, setShowGemsConfigModal] = useState(false);
+  const [gemsPerWin, setGemsPerWin] = useState(50);
+  const [gemsPerLoss, setGemsPerLoss] = useState(20);
+  const [gemsPerLevel, setGemsPerLevel] = useState(100);
+
+  // Load gems multipliers from localStorage on mount
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const savedWin = localStorage.getItem("gems_per_win");
+      const savedLoss = localStorage.getItem("gems_per_loss");
+      const savedLevel = localStorage.getItem("gems_per_level");
+      if (savedWin !== null) setGemsPerWin(Number(savedWin));
+      if (savedLoss !== null) setGemsPerLoss(Number(savedLoss));
+      if (savedLevel !== null) setGemsPerLevel(Number(savedLevel));
+    }
+  }, []);
+
   // Auto-rotating promo banner interval
   useEffect(() => {
     const timer = setInterval(() => {
@@ -279,6 +296,7 @@ export default function DashboardClient({ user, defaultTab = "home" }) {
   const winsCount = games.pastGames.filter(g => g.winnerId === user.id).length;
   const lossesCount = games.pastGames.filter(g => g.winnerId && g.winnerId !== user.id).length;
   const currentLevel = 1 + games.pastGames.length;
+  const gemsCount = (winsCount * gemsPerWin) + (lossesCount * gemsPerLoss) + (currentLevel * gemsPerLevel);
   const xpProgress = Math.min(100, Math.floor(((games.pastGames.length % 5) / 5) * 100));
 
   // Filter accepted friends
@@ -335,6 +353,125 @@ export default function DashboardClient({ user, defaultTab = "home" }) {
             >
               Accept Battle
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Gems Config settings Modal */}
+      {showGemsConfigModal && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl border border-slate-200 p-6 max-w-sm w-full shadow-2xl flex flex-col gap-4">
+            <div className="flex justify-between items-center">
+              <h3 className="font-display font-black text-lg text-slate-800 flex items-center gap-1.5">
+                <span className="material-symbols-outlined text-tertiary">diamond</span>
+                Gems Settings
+              </h3>
+              <button 
+                onClick={() => setShowGemsConfigModal(false)}
+                className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 hover:bg-slate-200 active-scale cursor-pointer"
+              >
+                <span className="material-symbols-outlined text-[18px]">close</span>
+              </button>
+            </div>
+            
+            <p className="text-xs text-slate-500 font-semibold leading-relaxed">
+              Customize the multiplier formula to calculate your total Gems dynamically. Changes are saved instantly.
+            </p>
+
+            <div className="space-y-4">
+              {/* Wins multiplier */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] text-slate-600 font-extrabold uppercase tracking-wider">Gems per Win</label>
+                <div className="relative flex items-center">
+                  <input
+                    type="number"
+                    min="0"
+                    value={gemsPerWin}
+                    onChange={(e) => {
+                      const val = Number(e.target.value);
+                      setGemsPerWin(val);
+                      localStorage.setItem("gems_per_win", val);
+                    }}
+                    className="w-full px-4 py-2 bg-slate-50 border border-slate-200 focus:border-indigo-500 rounded-xl text-sm focus:outline-none text-slate-700 font-bold"
+                  />
+                  <span className="absolute right-3.5 text-[10px] text-slate-400 font-bold">x {winsCount} wins</span>
+                </div>
+              </div>
+
+              {/* Losses multiplier */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] text-slate-600 font-extrabold uppercase tracking-wider">Gems per Loss</label>
+                <div className="relative flex items-center">
+                  <input
+                    type="number"
+                    min="0"
+                    value={gemsPerLoss}
+                    onChange={(e) => {
+                      const val = Number(e.target.value);
+                      setGemsPerLoss(val);
+                      localStorage.setItem("gems_per_loss", val);
+                    }}
+                    className="w-full px-4 py-2 bg-slate-50 border border-slate-200 focus:border-indigo-500 rounded-xl text-sm focus:outline-none text-slate-700 font-bold"
+                  />
+                  <span className="absolute right-3.5 text-[10px] text-slate-400 font-bold">x {lossesCount} losses</span>
+                </div>
+              </div>
+
+              {/* Level multiplier */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] text-slate-600 font-extrabold uppercase tracking-wider">Gems per Level</label>
+                <div className="relative flex items-center">
+                  <input
+                    type="number"
+                    min="0"
+                    value={gemsPerLevel}
+                    onChange={(e) => {
+                      const val = Number(e.target.value);
+                      setGemsPerLevel(val);
+                      localStorage.setItem("gems_per_level", val);
+                    }}
+                    className="w-full px-4 py-2 bg-slate-50 border border-slate-200 focus:border-indigo-500 rounded-xl text-sm focus:outline-none text-slate-700 font-bold"
+                  />
+                  <span className="absolute right-3.5 text-[10px] text-slate-400 font-bold">x {currentLevel} levels</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Preview Section */}
+            <div className="bg-slate-50 border border-slate-150 rounded-2xl p-4 flex flex-col gap-1">
+              <span className="text-[9px] text-slate-400 font-extrabold uppercase tracking-widest">Calculated Preview</span>
+              <div className="flex justify-between items-center mt-1">
+                <div className="text-xs text-slate-600 font-bold">
+                  ({winsCount} x {gemsPerWin}) + ({lossesCount} x {gemsPerLoss}) + ({currentLevel} x {gemsPerLevel})
+                </div>
+                <div className="font-display font-black text-sm text-indigo-600 flex items-center gap-0.5">
+                  <span className="material-symbols-outlined text-[16px] text-tertiary">diamond</span>
+                  {gemsCount.toLocaleString()}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-2">
+              <button
+                onClick={() => {
+                  setGemsPerWin(50);
+                  setGemsPerLoss(20);
+                  setGemsPerLevel(100);
+                  localStorage.removeItem("gems_per_win");
+                  localStorage.removeItem("gems_per_loss");
+                  localStorage.removeItem("gems_per_level");
+                }}
+                className="flex-1 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-600 font-display font-bold text-xs active-scale transition cursor-pointer"
+              >
+                Reset Default
+              </button>
+              <button
+                onClick={() => setShowGemsConfigModal(false)}
+                className="flex-1 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-display font-black text-xs active-scale transition shadow-md cursor-pointer"
+              >
+                Save & Close
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -560,9 +697,9 @@ export default function DashboardClient({ user, defaultTab = "home" }) {
           <h1 className="font-display text-2xl font-extrabold text-primary">GamerHub</h1>
         </div>
         <div className="flex items-center gap-2">
-          <div className="bg-surface-container-high px-3 py-1.5 rounded-full flex items-center gap-1 active-scale cursor-pointer" onClick={() => setActiveTab("profile")}>
+          <div className="bg-surface-container-high px-3 py-1.5 rounded-full flex items-center gap-1 active-scale cursor-pointer" onClick={() => setShowGemsConfigModal(true)} title="Gems Multiplier Settings">
             <span className="material-symbols-outlined text-tertiary text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>diamond</span>
-            <span className="font-display font-extrabold text-xs text-on-surface">1,250 Gems</span>
+            <span className="font-display font-extrabold text-xs text-on-surface">{gemsCount.toLocaleString()} Gems</span>
           </div>
           <button
             onClick={handleLogout}
