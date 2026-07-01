@@ -308,9 +308,17 @@ export default function DashboardClient({ user, defaultTab = "home" }) {
   });
 
   return (
-    <div className="min-h-screen bg-background text-on-background font-body pb-24 gaming-pattern flex flex-col">
+    <div className="min-h-screen bg-[#f1f5f9] text-on-background font-body pb-24 gaming-pattern flex flex-col relative overflow-hidden">
+      {/* Glossymorphic Floating Blur Blobs */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
+        <div className="absolute top-[10%] left-[5%] w-72 h-72 rounded-full bg-primary/10 blur-[80px] animate-pulse" style={{ animationDuration: '8s' }}></div>
+        <div className="absolute top-[35%] right-[-10%] w-96 h-96 rounded-full bg-secondary/10 blur-[100px] animate-pulse" style={{ animationDuration: '10s' }}></div>
+        <div className="absolute bottom-[20%] left-[-5%] w-80 h-80 rounded-full bg-pink-500/5 blur-[90px] animate-pulse" style={{ animationDuration: '6s' }}></div>
+        <div className="absolute bottom-[5%] right-[10%] w-72 h-72 rounded-full bg-emerald-500/5 blur-[90px] animate-pulse" style={{ animationDuration: '12s' }}></div>
+      </div>
+
       {actionLoadingId === "logout" && (
-        <div className="glass-overlay">
+        <div className="glass-overlay z-[100]">
           <div className="radar-spinner"></div>
           <p className="font-display font-extrabold text-sm text-primary animate-pulse">Logging out safely...</p>
         </div>
@@ -686,27 +694,27 @@ export default function DashboardClient({ user, defaultTab = "home" }) {
       )}
 
       {/* TopAppBar */}
-      <header className="w-full top-0 sticky z-40 bg-surface-bright/80 backdrop-blur-xl border-b border-outline-variant/30 shadow-sm flex justify-between items-center px-5 py-2 h-14">
+      <header className="sticky top-0 z-40 bg-white/40 backdrop-blur-xl border border-white/30 rounded-2xl mx-5 mt-3 shadow-lg flex justify-between items-center px-4 py-2 h-14 relative z-40">
         <div className="flex items-center gap-3">
           <div 
             onClick={() => setActiveTab("profile")}
-            className="w-10 h-10 rounded-full border-2 border-primary-container overflow-hidden active-scale cursor-pointer flex items-center justify-center bg-primary text-white font-display font-extrabold text-sm uppercase"
+            className="w-9 h-9 rounded-full border border-white/50 overflow-hidden active-scale cursor-pointer flex items-center justify-center bg-gradient-to-tr from-primary to-secondary text-white font-display font-extrabold text-sm uppercase shadow-sm"
           >
             {user.name ? user.name[0] : (user.email ? user.email[0] : "U")}
           </div>
-          <h1 className="font-display text-2xl font-extrabold text-primary">GamerHub</h1>
+          <h1 className="font-display text-xl font-black bg-clip-text text-transparent bg-gradient-to-r from-primary via-secondary to-pink-500 tracking-tight">GamerHub</h1>
         </div>
         <div className="flex items-center gap-2">
-          <div className="bg-surface-container-high px-3 py-1.5 rounded-full flex items-center gap-1 active-scale cursor-pointer" onClick={() => setShowGemsConfigModal(true)} title="Gems Multiplier Settings">
-            <span className="material-symbols-outlined text-tertiary text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>diamond</span>
-            <span className="font-display font-extrabold text-xs text-on-surface">{gemsCount.toLocaleString()} Gems</span>
+          <div className="bg-white/50 hover:bg-white/80 border border-white/50 px-3 py-1.5 rounded-full flex items-center gap-1 active-scale cursor-pointer transition-colors shadow-sm" onClick={() => setShowGemsConfigModal(true)} title="Gems Multiplier Settings">
+            <span className="material-symbols-outlined text-tertiary text-[18px]" style={{ fontVariationSettings: "'FILL' 1" }}>diamond</span>
+            <span className="font-display font-black text-xs text-on-surface">{gemsCount.toLocaleString()} Gems</span>
           </div>
           <button
             onClick={handleLogout}
             title="Logout"
-            className="w-9 h-9 rounded-full bg-error/10 text-error flex items-center justify-center active-scale transition-transform cursor-pointer hover:bg-error/20"
+            className="w-8 h-8 rounded-full bg-red-500/10 text-red-600 flex items-center justify-center active-scale transition-all border border-red-500/20 cursor-pointer hover:bg-red-500 hover:text-white"
           >
-            <span className="material-symbols-outlined text-[18px]">logout</span>
+            <span className="material-symbols-outlined text-[16px]">logout</span>
           </button>
         </div>
       </header>
@@ -818,185 +826,185 @@ export default function DashboardClient({ user, defaultTab = "home" }) {
                     Select Game Arena
                   </h3>
                   
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 gap-4">
                     {/* Game 1: Grid Battleship */}
                     <div 
                       onClick={() => setInviteGameMode("BATTLE")}
-                      className="relative overflow-hidden rounded-3xl card-shadow glossy-shine bg-gradient-to-br from-[#2e5bff] to-[#731be5] p-5 h-48 flex flex-col justify-between active-scale transition-all hover:shadow-indigo-500/20 hover:shadow-xl cursor-pointer group border border-white/10"
+                      className="relative overflow-hidden rounded-3xl card-shadow bg-gradient-to-br from-blue-500/20 via-indigo-500/10 to-purple-600/20 backdrop-blur-md p-4 h-48 flex flex-col justify-between active-scale transition-all hover:shadow-indigo-500/30 hover:shadow-2xl hover:-translate-y-1 cursor-pointer group border border-white/50"
                     >
                       <div className="absolute top-[-10px] right-[-10px] opacity-10 group-hover:scale-110 transition-transform duration-300">
-                        <span className="material-symbols-outlined text-[100px] text-white">target</span>
+                        <span className="material-symbols-outlined text-[100px] text-indigo-600">target</span>
                       </div>
                       {/* Floating Ninja Hattori Sticker */}
                       <img 
                         src="/ninja_hattori_sticker.png" 
                         alt="Ninja" 
-                        className="absolute right-2 bottom-2 w-16 h-16 object-contain sticker-ninja pointer-events-none drop-shadow-md z-10" 
+                        className="absolute right-2 bottom-2 w-14 h-14 object-contain sticker-ninja pointer-events-none drop-shadow-md z-10" 
                       />
                       <div>
-                        <span className="bg-white/20 text-white text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider">Tactical</span>
-                        <h4 className="text-white font-display text-lg font-black mt-2 flex items-center gap-1">Grid Battleship 🎯</h4>
-                        <p className="text-white/80 text-[10px] font-bold mt-1 max-w-[170px] leading-relaxed">Hide ships and strike enemy coordinates.</p>
+                        <span className="bg-indigo-100 text-indigo-800 text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider border border-indigo-200/50">Tactical</span>
+                        <h4 className="text-indigo-900 font-display text-base font-black mt-2 flex items-center gap-1">Grid Battleship 🎯</h4>
+                        <p className="text-slate-600 text-[10px] font-bold mt-1 max-w-[170px] leading-relaxed">Hide ships and strike enemy coordinates.</p>
                       </div>
-                      <span className="text-[10px] font-black text-white bg-white/10 self-start px-3 py-1 rounded-xl group-hover:bg-white/25 transition">PLAY NOW</span>
+                      <span className="text-[9px] font-black text-indigo-700 bg-indigo-50 border border-indigo-200/50 self-start px-3 py-1 rounded-xl group-hover:bg-indigo-600 group-hover:text-white transition-all shadow-sm">PLAY NOW</span>
                     </div>
 
                     {/* Game 2: Emoji Memory Match */}
                     <div 
                       onClick={() => setInviteGameMode("MEMORY")}
-                      className="relative overflow-hidden rounded-3xl card-shadow glossy-shine bg-gradient-to-br from-[#d946ef] to-[#8b5cf6] p-5 h-48 flex flex-col justify-between active-scale transition-all hover:shadow-fuchsia-500/20 hover:shadow-xl cursor-pointer group border border-white/10"
+                      className="relative overflow-hidden rounded-3xl card-shadow bg-gradient-to-br from-pink-500/20 via-fuchsia-500/10 to-purple-600/20 backdrop-blur-md p-4 h-48 flex flex-col justify-between active-scale transition-all hover:shadow-fuchsia-500/30 hover:shadow-2xl hover:-translate-y-1 cursor-pointer group border border-white/50"
                     >
                       <div className="absolute top-[-10px] right-[-10px] opacity-10 group-hover:scale-110 transition-transform duration-300">
-                        <span className="material-symbols-outlined text-[100px] text-white">extension</span>
+                        <span className="material-symbols-outlined text-[100px] text-fuchsia-600">extension</span>
                       </div>
                       <div>
-                        <span className="bg-white/20 text-white text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider">Mind Puzzles</span>
-                        <h4 className="text-white font-display text-lg font-black mt-2 flex items-center gap-1">Memory Match 🧩</h4>
-                        <p className="text-white/80 text-[10px] font-bold mt-1 max-w-[170px] leading-relaxed">Flip cards and match emoji pairs quickly.</p>
+                        <span className="bg-fuchsia-100 text-fuchsia-800 text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider border border-fuchsia-200/50">Mind Puzzles</span>
+                        <h4 className="text-fuchsia-900 font-display text-base font-black mt-2 flex items-center gap-1">Memory Match 🧩</h4>
+                        <p className="text-slate-600 text-[10px] font-bold mt-1 max-w-[170px] leading-relaxed">Flip cards and match emoji pairs quickly.</p>
                       </div>
-                      <span className="text-[10px] font-black text-white bg-white/10 self-start px-3 py-1 rounded-xl group-hover:bg-white/25 transition">PLAY NOW</span>
+                      <span className="text-[9px] font-black text-fuchsia-700 bg-fuchsia-50 border border-fuchsia-200/50 self-start px-3 py-1 rounded-xl group-hover:bg-fuchsia-600 group-hover:text-white transition-all shadow-sm">PLAY NOW</span>
                     </div>
 
                     {/* Game 3: Tic Tac Toe */}
                     <div 
                       onClick={() => setInviteGameMode("TICTACTOE")}
-                      className="relative overflow-hidden rounded-3xl card-shadow glossy-shine bg-gradient-to-br from-[#f59e0b] to-[#f97316] p-5 h-48 flex flex-col justify-between active-scale transition-all hover:shadow-amber-500/20 hover:shadow-xl cursor-pointer group border border-white/10"
+                      className="relative overflow-hidden rounded-3xl card-shadow bg-gradient-to-br from-amber-500/20 via-orange-500/10 to-yellow-600/20 backdrop-blur-md p-4 h-48 flex flex-col justify-between active-scale transition-all hover:shadow-amber-500/30 hover:shadow-2xl hover:-translate-y-1 cursor-pointer group border border-white/50"
                     >
                       <div className="absolute top-[-10px] right-[-10px] opacity-10 group-hover:scale-110 transition-transform duration-300">
-                        <span className="material-symbols-outlined text-[100px] text-white">grid_3x3</span>
+                        <span className="material-symbols-outlined text-[100px] text-amber-600">grid_3x3</span>
                       </div>
                       <div>
-                        <span className="bg-white/20 text-white text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider">Strategy</span>
-                        <h4 className="text-white font-display text-lg font-black mt-2 flex items-center gap-1">Tic Tac Toe ❌⭕</h4>
-                        <p className="text-white/80 text-[10px] font-bold mt-1 max-w-[170px] leading-relaxed">Align three symbols classic duel.</p>
+                        <span className="bg-amber-100 text-amber-800 text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider border border-amber-200/50">Strategy</span>
+                        <h4 className="text-amber-900 font-display text-base font-black mt-2 flex items-center gap-1">Tic Tac Toe ❌⭕</h4>
+                        <p className="text-slate-600 text-[10px] font-bold mt-1 max-w-[170px] leading-relaxed">Align three symbols classic duel.</p>
                       </div>
-                      <span className="text-[10px] font-black text-white bg-white/10 self-start px-3 py-1 rounded-xl group-hover:bg-white/25 transition">PLAY NOW</span>
+                      <span className="text-[9px] font-black text-amber-700 bg-amber-50 border border-amber-200/50 self-start px-3 py-1 rounded-xl group-hover:bg-amber-600 group-hover:text-white transition-all shadow-sm">PLAY NOW</span>
                     </div>
 
                     {/* Game 4: Word Guess */}
                     <div 
                       onClick={() => setInviteGameMode("WORD_GUESS")}
-                      className="relative overflow-hidden rounded-3xl card-shadow glossy-shine bg-gradient-to-br from-[#10b981] to-[#14b8a6] p-5 h-48 flex flex-col justify-between active-scale transition-all hover:shadow-emerald-500/20 hover:shadow-xl cursor-pointer group border border-white/10"
+                      className="relative overflow-hidden rounded-3xl card-shadow bg-gradient-to-br from-emerald-500/20 via-teal-500/10 to-cyan-600/20 backdrop-blur-md p-4 h-48 flex flex-col justify-between active-scale transition-all hover:shadow-emerald-500/30 hover:shadow-2xl hover:-translate-y-1 cursor-pointer group border border-white/50"
                     >
                       <div className="absolute top-[-10px] right-[-10px] opacity-10 group-hover:scale-110 transition-transform duration-300">
-                        <span className="material-symbols-outlined text-[100px] text-white">notes</span>
+                        <span className="material-symbols-outlined text-[100px] text-emerald-600">notes</span>
                       </div>
                       {/* Floating Doraemon Sticker */}
                       <img 
                         src="/doraemon_sticker.png" 
                         alt="Doraemon" 
-                        className="absolute right-2 bottom-2 w-16 h-16 object-contain sticker-doraemon pointer-events-none drop-shadow-md z-10" 
+                        className="absolute right-2 bottom-2 w-14 h-14 object-contain sticker-doraemon pointer-events-none drop-shadow-md z-10" 
                       />
                       <div>
-                        <span className="bg-white/20 text-white text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider">Social AI</span>
-                        <h4 className="text-white font-display text-lg font-black mt-2 flex items-center gap-1">Word Guess 📝</h4>
-                        <p className="text-white/80 text-[10px] font-bold mt-1 max-w-[170px] leading-relaxed">Build word chains and guess opponent secret list.</p>
+                        <span className="bg-emerald-100 text-emerald-800 text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider border border-emerald-200/50">Social AI</span>
+                        <h4 className="text-emerald-900 font-display text-base font-black mt-2 flex items-center gap-1">Word Guess 📝</h4>
+                        <p className="text-slate-600 text-[10px] font-bold mt-1 max-w-[170px] leading-relaxed">Build word chains and guess opponent secret list.</p>
                       </div>
-                      <span className="text-[10px] font-black text-white bg-white/10 self-start px-3 py-1 rounded-xl group-hover:bg-white/25 transition">PLAY NOW</span>
+                      <span className="text-[9px] font-black text-emerald-700 bg-emerald-50 border border-emerald-200/50 self-start px-3 py-1 rounded-xl group-hover:bg-emerald-600 group-hover:text-white transition-all shadow-sm">PLAY NOW</span>
                     </div>
                   </div>
                 </div>
 
                 {/* Split Row for Match History and Progress */}
                 <div className="grid grid-cols-2 gap-4">
-                  {/* Match History Card (Orange/Red) */}
-                  <div className="relative overflow-hidden rounded-2xl card-shadow glossy-shine bg-gradient-to-br from-[#ff6d00] to-[#d50000] p-5 h-44 flex flex-col justify-between active-scale transition-transform">
-                    <div className="absolute top-[-10px] right-[-10px] opacity-20">
-                      <span className="material-symbols-outlined text-[80px] text-white">history</span>
+                  {/* Match History Card (Frosted Orange/Red Glass) */}
+                  <div className="relative overflow-hidden rounded-2xl card-shadow bg-gradient-to-br from-orange-500/20 via-red-500/10 to-rose-600/20 backdrop-blur-md border border-white/50 p-5 h-44 flex flex-col justify-between active-scale transition-all hover:shadow-orange-500/30 hover:-translate-y-1 cursor-pointer group">
+                    <div className="absolute top-[-10px] right-[-10px] opacity-25 group-hover:scale-105 transition-transform">
+                      <span className="material-symbols-outlined text-[80px] text-orange-600">history</span>
                     </div>
                     <div>
-                      <h3 className="text-white font-display text-base font-extrabold">Battle History</h3>
-                        <div className="flex flex-wrap gap-1.5 mt-2">
-                          <span className="bg-white/20 text-white text-[10px] font-bold px-2 py-0.5 rounded border border-white/20">
-                            {winsCount} Wins
-                          </span>
-                          <span className="bg-white/10 text-white/70 text-[10px] font-bold px-2 py-0.5 rounded">
-                            {lossesCount} Losses
-                          </span>
-                        </div>
+                      <h3 className="text-orange-950 font-display text-base font-black">Battle History</h3>
+                      <div className="flex flex-wrap gap-1.5 mt-2">
+                        <span className="bg-orange-100 text-orange-800 border border-orange-200/50 text-[9px] font-black px-2.5 py-0.5 rounded-md">
+                          {winsCount} Wins
+                        </span>
+                        <span className="bg-white/40 text-slate-700 border border-white/50 text-[9px] font-black px-2.5 py-0.5 rounded-md">
+                          {lossesCount} Losses
+                        </span>
                       </div>
-                      <button 
-                        onClick={() => setActiveTab("history")}
-                        className="w-full h-9 rounded-xl btn-3d-orange text-white font-bold text-xs flex items-center justify-center cursor-pointer"
-                      >
-                        Stats
-                      </button>
                     </div>
+                    <button 
+                      onClick={() => setActiveTab("history")}
+                      className="w-full h-8 rounded-xl bg-gradient-to-r from-orange-600 to-red-600 text-white font-display font-black text-xs flex items-center justify-center cursor-pointer transition shadow-md active-scale"
+                    >
+                      Stats
+                    </button>
+                  </div>
 
-                    {/* Profile Card (Modern Glass Container) */}
-                    <div className="relative overflow-hidden rounded-2xl card-shadow glossy-surface p-5 h-44 flex flex-col justify-between active-scale transition-transform">
-                      <div className="absolute top-[-10px] right-[-10px] opacity-10">
-                        <span className="material-symbols-outlined text-[80px] text-primary">person</span>
+                  {/* Profile Card (Modern Glass Container) */}
+                  <div className="relative overflow-hidden rounded-2xl card-shadow bg-gradient-to-br from-blue-500/20 via-indigo-500/10 to-purple-600/20 backdrop-blur-md border border-white/50 p-5 h-44 flex flex-col justify-between active-scale transition-all hover:shadow-indigo-500/30 hover:-translate-y-1 cursor-pointer group">
+                    <div className="absolute top-[-10px] right-[-10px] opacity-25 group-hover:scale-105 transition-transform">
+                      <span className="material-symbols-outlined text-[80px] text-indigo-600">person</span>
+                    </div>
+                    <div className="flex items-center gap-2 relative">
+                      <div className="w-9 h-9 rounded-lg bg-white/60 border border-white/80 flex items-center justify-center shadow-inner text-primary-container font-display font-extrabold text-sm shrink-0">
+                        🏆
                       </div>
-                      <div className="flex items-center gap-2">
-                        <div className="w-10 h-10 rounded-lg bg-primary-fixed flex items-center justify-center shadow-inner text-primary-container font-display font-extrabold">
-                          🏆
-                        </div>
-                        <div>
-                          <h3 className="text-on-surface font-display text-sm font-extrabold leading-none">Level {currentLevel}</h3>
-                          <p className="text-on-surface-variant text-[10px] font-semibold mt-1">Master Guardian II</p>
-                        </div>
+                      <div>
+                        <h3 className="text-slate-800 font-display text-sm font-black leading-none">Level {currentLevel}</h3>
+                        <p className="text-slate-500 text-[9px] font-bold mt-1 uppercase tracking-wider">Master Guardian</p>
                       </div>
-                      <div className="space-y-1">
-                        <div className="flex justify-between text-[9px] font-bold text-on-surface-variant uppercase">
-                          <span>XP Progress</span>
-                          <span>{xpProgress}%</span>
-                        </div>
-                        <div className="w-full h-2.5 bg-surface-container rounded-full overflow-hidden border border-outline-variant/30">
-                          <div className="h-full bg-gradient-to-r from-primary to-secondary relative" style={{ width: `${xpProgress}%` }}>
-                            <div className="absolute inset-0 bg-white/20" style={{ clipPath: "polygon(0 0, 100% 0, 80% 100%, 0% 100%)" }}></div>
-                          </div>
+                    </div>
+                    <div className="space-y-1 relative">
+                      <div className="flex justify-between text-[9px] font-black text-slate-500 uppercase tracking-wider">
+                        <span>XP Progress</span>
+                        <span>{xpProgress}%</span>
+                      </div>
+                      <div className="w-full h-2 bg-white/40 border border-white/60 rounded-full overflow-hidden">
+                        <div className="h-full bg-gradient-to-r from-primary to-secondary relative" style={{ width: `${xpProgress}%` }}>
+                          <div className="absolute inset-0 bg-white/20" style={{ clipPath: "polygon(0 0, 100% 0, 80% 100%, 0% 100%)" }}></div>
                         </div>
                       </div>
                     </div>
                   </div>
+                </div>
 
                 {/* Auto-swiping Carousel Promo Banner */}
-                <section className="mb-6 overflow-hidden rounded-2xl card-shadow relative">
+                <section className="mb-6 overflow-hidden rounded-3xl card-shadow border border-white/50 relative bg-white/20 backdrop-blur-md">
                   <div 
                     className="flex transition-transform duration-500 ease-out" 
                     style={{ transform: `translateX(-${currentSlide * 100}%)` }}
                   >
                     {/* Slide 1: Direct Chat */}
-                    <div className="w-full flex-shrink-0 bg-gradient-to-tr from-indigo-600 via-purple-600 to-indigo-500 p-5 text-white relative overflow-hidden flex flex-col justify-between min-h-[140px]">
-                      <div className="absolute -top-12 -right-12 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
-                      <div className="absolute -bottom-12 -left-12 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
+                    <div className="w-full flex-shrink-0 bg-gradient-to-tr from-indigo-500/20 via-purple-500/10 to-indigo-600/25 p-5 relative overflow-hidden flex flex-col justify-between min-h-[140px]">
+                      <div className="absolute -top-12 -right-12 w-32 h-32 bg-indigo-500/10 rounded-full blur-2xl"></div>
+                      <div className="absolute -bottom-12 -left-12 w-32 h-32 bg-purple-500/10 rounded-full blur-2xl"></div>
                       
                       <div className="relative flex items-center justify-between gap-4">
                         <div className="flex-1">
-                          <span className="bg-white/20 text-white text-[9px] font-bold px-2 py-0.5 rounded-full mb-2 inline-block uppercase tracking-wider">New Feature</span>
-                          <h4 className="font-display font-extrabold text-base mb-1">Direct Chat & Invites</h4>
-                          <p className="text-white/80 text-xs leading-relaxed max-w-[240px]">
+                          <span className="bg-indigo-100 text-indigo-800 border border-indigo-200/50 text-[8px] font-black px-2 py-0.5 rounded-full mb-2 inline-block uppercase tracking-wider">New Feature</span>
+                          <h4 className="font-display font-black text-slate-850 text-base mb-1">Direct Chat & Invites</h4>
+                          <p className="text-slate-600 text-xs leading-relaxed max-w-[240px]">
                             Chat in real-time with your squad and challenge them directly from your chat conversation logs!
                           </p>
                         </div>
                         <button
                           onClick={() => router.push("/chats")}
-                          className="w-12 h-12 rounded-2xl bg-white text-indigo-600 flex items-center justify-center active-scale transition-transform cursor-pointer shadow-lg hover:shadow-xl shrink-0"
+                          className="w-11 h-11 rounded-2xl bg-white/70 hover:bg-white text-indigo-600 flex items-center justify-center active-scale transition-all border border-white shadow-md hover:shadow-lg shrink-0"
                         >
-                          <span className="material-symbols-outlined text-[24px] font-bold">chat</span>
+                          <span className="material-symbols-outlined text-[20px] font-bold">chat</span>
                         </button>
                       </div>
                     </div>
 
                     {/* Slide 2: Tic Tac Toe */}
-                    <div className="w-full flex-shrink-0 bg-gradient-to-tr from-amber-500 via-orange-600 to-red-500 p-5 text-white relative overflow-hidden flex flex-col justify-between min-h-[140px]">
-                      <div className="absolute -top-12 -right-12 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
-                      <div className="absolute -bottom-12 -left-12 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
+                    <div className="w-full flex-shrink-0 bg-gradient-to-tr from-amber-500/20 via-orange-500/10 to-red-500/25 p-5 relative overflow-hidden flex flex-col justify-between min-h-[140px]">
+                      <div className="absolute -top-12 -right-12 w-32 h-32 bg-amber-500/10 rounded-full blur-2xl"></div>
+                      <div className="absolute -bottom-12 -left-12 w-32 h-32 bg-red-500/10 rounded-full blur-2xl"></div>
                       
                       <div className="relative flex items-center justify-between gap-4">
                         <div className="flex-1">
-                          <span className="bg-white/20 text-white text-[9px] font-bold px-2 py-0.5 rounded-full mb-2 inline-block uppercase tracking-wider">Hot Game</span>
-                          <h4 className="font-display font-extrabold text-base mb-1">Tic Tac Toe is Live!</h4>
-                          <p className="text-white/80 text-xs leading-relaxed max-w-[240px]">
+                          <span className="bg-amber-100 text-amber-800 border border-amber-200/50 text-[8px] font-black px-2 py-0.5 rounded-full mb-2 inline-block uppercase tracking-wider">Hot Game</span>
+                          <h4 className="font-display font-black text-slate-850 text-base mb-1">Tic Tac Toe is Live!</h4>
+                          <p className="text-slate-600 text-xs leading-relaxed max-w-[240px]">
                             Challenge friends to a 3-in-a-row classic showdown! Instant moves and live socket sync.
                           </p>
                         </div>
                         <button
                           onClick={() => setActiveTab("friends")}
-                          className="w-12 h-12 rounded-2xl bg-white text-orange-600 flex items-center justify-center active-scale transition-transform cursor-pointer shadow-lg hover:shadow-xl shrink-0"
+                          className="w-11 h-11 rounded-2xl bg-white/70 hover:bg-white text-orange-600 flex items-center justify-center active-scale transition-all border border-white shadow-md hover:shadow-lg shrink-0"
                         >
-                          <span className="material-symbols-outlined text-[24px] font-bold">grid_3x3</span>
+                          <span className="material-symbols-outlined text-[20px] font-bold">grid_3x3</span>
                         </button>
                       </div>
                     </div>
@@ -1006,19 +1014,19 @@ export default function DashboardClient({ user, defaultTab = "home" }) {
                   <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
                     <button 
                       onClick={() => setCurrentSlide(0)}
-                      className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${currentSlide === 0 ? "bg-white w-3" : "bg-white/50"}`}
+                      className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${currentSlide === 0 ? "bg-slate-800 w-3" : "bg-slate-800/40"}`}
                     ></button>
                     <button 
                       onClick={() => setCurrentSlide(1)}
-                      className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${currentSlide === 1 ? "bg-white w-3" : "bg-white/50"}`}
+                      className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${currentSlide === 1 ? "bg-slate-800 w-3" : "bg-slate-800/40"}`}
                     ></button>
                   </div>
                 </section>
 
                 {/* Recent Activity / News Section */}
                 <section className="pb-10">
-                  <h3 className="font-display text-lg font-extrabold text-on-surface mb-3">Latest News</h3>
-                  <div className="bg-surface-container-lowest rounded-2xl border border-outline-variant/30 overflow-hidden card-shadow">
+                  <h3 className="font-display text-sm font-extrabold text-on-surface uppercase tracking-wider mb-3">Latest News</h3>
+                  <div className="bg-white/20 backdrop-blur-md rounded-3xl border border-white/50 overflow-hidden card-shadow">
                     <div className="h-36 w-full relative">
                       <img 
                         className="w-full h-full object-cover" 
@@ -1026,17 +1034,17 @@ export default function DashboardClient({ user, defaultTab = "home" }) {
                         src="https://lh3.googleusercontent.com/aida-public/AB6AXuAjsrQtfFXT6d_kuEojF0vaPVdCLoKPJoKFGy6W2fp3pYD1B62Za0fvl4EFC8p2AZHh9KBOooer8cdeFj435C8cW7SG2LX9WPWl55cgl63Mt7T37pC5xdL4Mow365P_dLqxdFPsDPQXtwhyyFtogGuD_P4y_-VqmnypECrB_wIpE4hySAtAIsMZ7YndfGQU6UBQvOM87J4p-1xx5W-NO1VAAn4L-zNfU0uDwmTxFBCOyzHtLlioFMhEaNtxE-TxVDjM4_YOs0eS4sE"
                       />
                       <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
-                        <span className="bg-primary text-white text-[9px] font-bold px-2 py-0.5 rounded mb-1 inline-block">EVENT</span>
+                        <span className="bg-primary text-white text-[8px] font-black px-2 py-0.5 rounded-full mb-1 inline-block uppercase tracking-wider">Event</span>
                         <h4 className="text-white font-extrabold text-sm">Cyber Clash Season 4 Starts Today!</h4>
                       </div>
                     </div>
                     <div className="p-4 flex items-center justify-between">
-                      <p className="text-on-surface-variant text-xs max-w-[200px]">Join the tournament and win exclusive legendary skins.</p>
+                      <p className="text-slate-655 text-xs max-w-[200px] font-medium leading-relaxed">Join the tournament and win exclusive legendary skins.</p>
                       <button 
                         onClick={() => setActiveTab("friends")}
-                        className="w-9 h-9 rounded-full bg-primary/10 text-primary flex items-center justify-center active-scale transition-transform cursor-pointer"
+                        className="w-8 h-8 rounded-full bg-primary/10 hover:bg-primary text-primary hover:text-white flex items-center justify-center active-scale border border-primary/20 transition cursor-pointer"
                       >
-                        <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
+                        <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
                       </button>
                     </div>
                   </div>
@@ -1402,7 +1410,7 @@ export default function DashboardClient({ user, defaultTab = "home" }) {
       </main>
 
       {/* BottomNavBar */}
-      <nav className="fixed bottom-0 left-0 w-full z-40 flex justify-around items-center px-container-margin pb-safe bg-surface-container-lowest/90 backdrop-blur-2xl border-t border-outline-variant/20 shadow-[0px_-4px_12px_rgba(0,0,0,0.05)] h-16">
+      <nav className="fixed bottom-4 left-1/2 -translate-x-1/2 w-[92%] max-w-lg z-40 flex justify-around items-center px-2 bg-white/40 backdrop-blur-xl border border-white/50 shadow-2xl rounded-3xl h-14">
         {/* Home */}
         <button 
           onClick={() => setActiveTab("home")}
@@ -1410,9 +1418,9 @@ export default function DashboardClient({ user, defaultTab = "home" }) {
             activeTab === "home" ? "text-primary font-extrabold" : "text-on-surface-variant hover:text-primary-container"
           }`}
         >
-          <span className="material-symbols-outlined text-[24px]" style={{ fontVariationSettings: activeTab === "home" ? "'FILL' 1" : "" }}>home</span>
-          <span className="font-display text-[10px] mt-0.5">Home</span>
-          {activeTab === "home" && <span className="absolute bottom-1 w-1.5 h-1.5 bg-primary rounded-full"></span>}
+          <span className="material-symbols-outlined text-[22px]" style={{ fontVariationSettings: activeTab === "home" ? "'FILL' 1" : "" }}>home</span>
+          <span className="font-display text-[9px] mt-0.5">Home</span>
+          {activeTab === "home" && <span className="absolute bottom-1 w-1 h-1 bg-primary rounded-full"></span>}
         </button>
 
         {/* Play */}
@@ -1422,9 +1430,9 @@ export default function DashboardClient({ user, defaultTab = "home" }) {
             activeTab === "friends" ? "text-primary font-extrabold" : "text-on-surface-variant hover:text-primary-container"
           }`}
         >
-          <span className="material-symbols-outlined text-[24px]" style={{ fontVariationSettings: activeTab === "friends" ? "'FILL' 1" : "" }}>sports_esports</span>
-          <span className="font-display text-[10px] mt-0.5">Play</span>
-          {activeTab === "friends" && <span className="absolute bottom-1 w-1.5 h-1.5 bg-primary rounded-full"></span>}
+          <span className="material-symbols-outlined text-[22px]" style={{ fontVariationSettings: activeTab === "friends" ? "'FILL' 1" : "" }}>sports_esports</span>
+          <span className="font-display text-[9px] mt-0.5">Play</span>
+          {activeTab === "friends" && <span className="absolute bottom-1 w-1 h-1 bg-primary rounded-full"></span>}
         </button>
 
         {/* Chats */}
@@ -1432,8 +1440,8 @@ export default function DashboardClient({ user, defaultTab = "home" }) {
           onClick={() => router.push("/chats")}
           className="flex flex-col items-center justify-center flex-1 h-full relative cursor-pointer transition-all duration-150 active-scale text-on-surface-variant hover:text-primary-container"
         >
-          <span className="material-symbols-outlined text-[24px]">chat</span>
-          <span className="font-display text-[10px] mt-0.5">Chats</span>
+          <span className="material-symbols-outlined text-[22px]">chat</span>
+          <span className="font-display text-[9px] mt-0.5">Chats</span>
         </button>
 
         {/* History */}
@@ -1443,9 +1451,9 @@ export default function DashboardClient({ user, defaultTab = "home" }) {
             activeTab === "history" ? "text-primary font-extrabold" : "text-on-surface-variant hover:text-primary-container"
           }`}
         >
-          <span className="material-symbols-outlined text-[24px]" style={{ fontVariationSettings: activeTab === "history" ? "'FILL' 1" : "" }}>history</span>
-          <span className="font-display text-[10px] mt-0.5">History</span>
-          {activeTab === "history" && <span className="absolute bottom-1 w-1.5 h-1.5 bg-primary rounded-full"></span>}
+          <span className="material-symbols-outlined text-[22px]" style={{ fontVariationSettings: activeTab === "history" ? "'FILL' 1" : "" }}>history</span>
+          <span className="font-display text-[9px] mt-0.5">History</span>
+          {activeTab === "history" && <span className="absolute bottom-1 w-1 h-1 bg-primary rounded-full"></span>}
         </button>
 
         {/* Profile */}
@@ -1455,9 +1463,9 @@ export default function DashboardClient({ user, defaultTab = "home" }) {
             activeTab === "profile" ? "text-primary font-extrabold" : "text-on-surface-variant hover:text-primary-container"
           }`}
         >
-          <span className="material-symbols-outlined text-[24px]" style={{ fontVariationSettings: activeTab === "profile" ? "'FILL' 1" : "" }}>person</span>
-          <span className="font-display text-[10px] mt-0.5">Profile</span>
-          {activeTab === "profile" && <span className="absolute bottom-1 w-1.5 h-1.5 bg-primary rounded-full"></span>}
+          <span className="material-symbols-outlined text-[22px]" style={{ fontVariationSettings: activeTab === "profile" ? "'FILL' 1" : "" }}>person</span>
+          <span className="font-display text-[9px] mt-0.5">Profile</span>
+          {activeTab === "profile" && <span className="absolute bottom-1 w-1 h-1 bg-primary rounded-full"></span>}
         </button>
       </nav>
     </div>

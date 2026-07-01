@@ -167,21 +167,28 @@ export default function ChatsClient({ user }) {
   });
 
   return (
-    <div className="h-[100dvh] flex flex-col bg-background w-full max-w-md md:max-w-lg lg:max-w-xl mx-auto relative border-x border-outline-variant/10 shadow-2xl overflow-hidden">
+    <div className="h-[100dvh] flex flex-col bg-[#f1f5f9] w-full max-w-md md:max-w-lg lg:max-w-xl mx-auto relative border-x border-outline-variant/20 shadow-2xl overflow-hidden">
+      {/* Glossymorphic Floating Blur Blobs */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
+        <div className="absolute top-[10%] left-[5%] w-60 h-60 rounded-full bg-primary/10 blur-[80px] animate-pulse" style={{ animationDuration: '8s' }}></div>
+        <div className="absolute top-[45%] right-[-15%] w-72 h-72 rounded-full bg-secondary/10 blur-[100px] animate-pulse" style={{ animationDuration: '10s' }}></div>
+        <div className="absolute bottom-[20%] left-[-10%] w-64 h-64 rounded-full bg-pink-500/5 blur-[70px] animate-pulse" style={{ animationDuration: '6s' }}></div>
+      </div>
+
       {/* Header */}
-      <header className="sticky top-0 z-30 bg-surface-container-lowest/80 backdrop-blur-xl border-b border-outline-variant/20 p-4 pb-3">
-        <div className="flex items-center justify-between mb-4">
-          <h1 className="font-display text-2xl font-extrabold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+      <header className="sticky top-0 z-30 bg-white/40 backdrop-blur-xl border border-white/40 rounded-2xl mx-4 mt-3 shadow-lg flex flex-col p-3.5 mb-2 relative z-30">
+        <div className="flex items-center justify-between mb-3">
+          <h1 className="font-display text-xl font-black bg-clip-text text-transparent bg-gradient-to-r from-primary via-secondary to-pink-500 tracking-tight">
             Chats
           </h1>
-          <span className="material-symbols-outlined text-on-surface-variant cursor-pointer hover:text-primary">
+          <span className="material-symbols-outlined text-on-surface-variant cursor-pointer hover:text-primary transition-colors">
             more_vert
           </span>
         </div>
 
         {/* Search Input */}
         <div className="relative flex items-center">
-          <span className="material-symbols-outlined absolute left-3 text-outline text-[20px]">
+          <span className="material-symbols-outlined absolute left-3 text-outline text-[18px]">
             search
           </span>
           <input
@@ -189,14 +196,14 @@ export default function ChatsClient({ user }) {
             placeholder="Search conversations..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 bg-surface-container rounded-2xl border-none text-sm text-on-surface placeholder-outline focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all"
+            className="w-full pl-9 pr-4 py-2 bg-white/60 hover:bg-white focus:bg-white border border-white/80 focus:border-primary rounded-xl text-xs text-on-surface placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-primary/20 transition-all font-medium"
           />
           {searchQuery && (
             <button
               onClick={() => setSearchQuery("")}
-              className="absolute right-3 text-outline hover:text-on-surface cursor-pointer"
+              className="absolute right-3 text-outline hover:text-on-surface cursor-pointer flex items-center"
             >
-              <span className="material-symbols-outlined text-[18px]">close</span>
+              <span className="material-symbols-outlined text-[16px]">close</span>
             </button>
           )}
         </div>
@@ -237,7 +244,7 @@ export default function ChatsClient({ user }) {
             )}
           </div>
         ) : (
-          <div className="divide-y divide-outline-variant/10">
+          <div className="flex flex-col gap-1.5 pb-24 relative z-10">
             {filteredChats.map((item) => {
               const friend = item.friend;
               const hasLastMessage = !!item.lastMessage;
@@ -247,47 +254,47 @@ export default function ChatsClient({ user }) {
                 <div
                   key={friend.id}
                   onClick={() => router.push(`/chats/${friend.id}`)}
-                  className="flex items-center space-x-3 py-3.5 cursor-pointer hover:bg-surface-container-lowest/50 active:bg-surface-container-lowest transition-colors px-1 rounded-xl"
+                  className="flex items-center space-x-3 py-3 px-3 bg-white/40 backdrop-blur-md border border-white/50 rounded-2xl cursor-pointer hover:bg-white hover:border-white shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
                 >
                   {/* Avatar & Online status indicator */}
                   <div className="relative shrink-0">
-                    <div className={`w-12 h-12 rounded-full bg-gradient-to-tr ${getAvatarGradient(friend.id)} flex items-center justify-center text-white font-extrabold text-sm shadow-md`}>
+                    <div className={`w-11 h-11 rounded-full bg-gradient-to-tr ${getAvatarGradient(friend.id)} flex items-center justify-center text-white font-extrabold text-xs shadow-sm border border-white/40`}>
                       {getInitials(friend.name, friend.email)}
                     </div>
                     {friend.isOnline && (
-                      <span className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-500 border-[2.5px] border-background rounded-full shadow-sm"></span>
+                      <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full shadow-sm"></span>
                     )}
                   </div>
 
                   {/* Friend info & Last message snippet */}
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between mb-1">
-                      <h4 className="font-display font-bold text-sm text-on-surface truncate">
+                    <div className="flex items-center justify-between mb-0.5">
+                      <h4 className="font-display font-black text-xs text-slate-800 truncate">
                         {friend.name || friend.email.split("@")[0]}
                       </h4>
-                      <span className="text-[10px] text-outline">
+                      <span className="text-[9px] text-slate-450 font-bold">
                         {hasLastMessage ? formatTime(item.lastMessage.createdAt) : ""}
                       </span>
                     </div>
 
-                    <div className="flex items-center text-xs text-on-surface-variant truncate">
+                    <div className="flex items-center text-[11px] text-slate-500 truncate font-medium">
                       {isInvite ? (
-                        <span className="flex items-center text-primary font-medium">
-                          <span className="material-symbols-outlined text-[16px] mr-1">sports_esports</span>
+                        <span className="flex items-center text-primary font-bold">
+                          <span className="material-symbols-outlined text-[14px] mr-1">sports_esports</span>
                           🎮 Game Challenge
                         </span>
                       ) : item.lastMessage?.content?.startsWith("[sticker:") ? (
-                        <span className="flex items-center text-secondary font-medium">
-                          <span className="material-symbols-outlined text-[16px] mr-1">sentiment_satisfied</span>
+                        <span className="flex items-center text-secondary font-bold">
+                          <span className="material-symbols-outlined text-[14px] mr-1">sentiment_satisfied</span>
                           [Sticker]
                         </span>
                       ) : item.lastMessage?.content?.startsWith("[gif:") ? (
-                        <span className="flex items-center text-secondary font-medium">
-                          <span className="material-symbols-outlined text-[16px] mr-1">gif</span>
+                        <span className="flex items-center text-secondary font-bold">
+                          <span className="material-symbols-outlined text-[14px] mr-1">gif</span>
                           [GIF]
                         </span>
                       ) : (
-                        item.lastMessage?.content || <span className="text-outline italic">Tap to start chatting</span>
+                        item.lastMessage?.content || <span className="text-slate-400 italic font-semibold">Tap to start chatting</span>
                       )}
                     </div>
                   </div>
@@ -299,46 +306,46 @@ export default function ChatsClient({ user }) {
       </main>
 
       {/* BottomNavBar */}
-      <nav className="fixed bottom-0 left-0 w-full z-40 flex justify-around items-center px-container-margin pb-safe bg-surface-container-lowest/90 backdrop-blur-2xl border-t border-outline-variant/20 shadow-[0px_-4px_12px_rgba(0,0,0,0.05)] h-16">
+      <nav className="fixed bottom-4 left-1/2 -translate-x-1/2 w-[92%] max-w-lg z-40 flex justify-around items-center px-2 bg-white/40 backdrop-blur-xl border border-white/50 shadow-2xl rounded-3xl h-14">
         <a 
           href="/"
-          className="flex flex-col items-center justify-center flex-1 h-full relative cursor-pointer text-on-surface-variant hover:text-primary-container"
+          className="flex flex-col items-center justify-center flex-1 h-full relative cursor-pointer text-on-surface-variant hover:text-primary transition-all duration-150 active-scale"
         >
-          <span className="material-symbols-outlined text-[24px]">home</span>
-          <span className="font-display text-[10px] mt-0.5">Home</span>
+          <span className="material-symbols-outlined text-[22px]">home</span>
+          <span className="font-display text-[9px] mt-0.5">Home</span>
         </a>
 
         <a 
           href="/play"
-          className="flex flex-col items-center justify-center flex-1 h-full relative cursor-pointer text-on-surface-variant hover:text-primary-container"
+          className="flex flex-col items-center justify-center flex-1 h-full relative cursor-pointer text-on-surface-variant hover:text-primary transition-all duration-150 active-scale"
         >
-          <span className="material-symbols-outlined text-[24px]">sports_esports</span>
-          <span className="font-display text-[10px] mt-0.5">Play</span>
+          <span className="material-symbols-outlined text-[22px]">sports_esports</span>
+          <span className="font-display text-[9px] mt-0.5">Play</span>
         </a>
 
         <a 
           href="/chats"
-          className="flex flex-col items-center justify-center flex-1 h-full relative cursor-pointer text-primary font-extrabold"
+          className="flex flex-col items-center justify-center flex-1 h-full relative cursor-pointer text-primary font-black transition-all duration-150 active-scale"
         >
-          <span className="material-symbols-outlined text-[24px]" style={{ fontVariationSettings: "'FILL' 1" }}>chat</span>
-          <span className="font-display text-[10px] mt-0.5">Chats</span>
-          <span className="absolute bottom-1 w-1.5 h-1.5 bg-primary rounded-full"></span>
+          <span className="material-symbols-outlined text-[22px]" style={{ fontVariationSettings: "'FILL' 1" }}>chat</span>
+          <span className="font-display text-[9px] mt-0.5">Chats</span>
+          <span className="absolute bottom-1 w-1 h-1 bg-primary rounded-full"></span>
         </a>
 
         <a 
           href="/history"
-          className="flex flex-col items-center justify-center flex-1 h-full relative cursor-pointer text-on-surface-variant hover:text-primary-container"
+          className="flex flex-col items-center justify-center flex-1 h-full relative cursor-pointer text-on-surface-variant hover:text-primary transition-all duration-150 active-scale"
         >
-          <span className="material-symbols-outlined text-[24px]">history</span>
-          <span className="font-display text-[10px] mt-0.5">History</span>
+          <span className="material-symbols-outlined text-[22px]">history</span>
+          <span className="font-display text-[9px] mt-0.5">History</span>
         </a>
 
         <a 
           href="/profile"
-          className="flex flex-col items-center justify-center flex-1 h-full relative cursor-pointer text-on-surface-variant hover:text-primary-container"
+          className="flex flex-col items-center justify-center flex-1 h-full relative cursor-pointer text-on-surface-variant hover:text-primary transition-all duration-150 active-scale"
         >
-          <span className="material-symbols-outlined text-[24px]">person</span>
-          <span className="font-display text-[10px] mt-0.5">Profile</span>
+          <span className="material-symbols-outlined text-[22px]">person</span>
+          <span className="font-display text-[9px] mt-0.5">Profile</span>
         </a>
       </nav>
     </div>

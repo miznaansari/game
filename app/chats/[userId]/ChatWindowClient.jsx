@@ -434,65 +434,78 @@ export default function ChatWindowClient({ user, recipientId }) {
   const overallWinRate = overallTotal > 0 ? Math.round((overallWins / overallTotal) * 100) : 0;
 
   return (
-    <div className="h-[100dvh] flex flex-col bg-background w-full max-w-md md:max-w-lg lg:max-w-xl mx-auto relative border-x border-outline-variant/10 shadow-2xl overflow-hidden">
+    <div className="h-[100dvh] flex flex-col bg-[#f1f5f9] w-full max-w-md md:max-w-lg lg:max-w-xl mx-auto relative border-x border-outline-variant/20 shadow-2xl overflow-hidden">
+      {/* Glossymorphic Floating Blur Blobs */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
+        <div className="absolute top-[10%] left-[5%] w-60 h-60 rounded-full bg-primary/10 blur-[80px] animate-pulse" style={{ animationDuration: '8s' }}></div>
+        <div className="absolute top-[40%] right-[-15%] w-72 h-72 rounded-full bg-secondary/10 blur-[100px] animate-pulse" style={{ animationDuration: '10s' }}></div>
+        <div className="absolute bottom-[20%] left-[-10%] w-64 h-64 rounded-full bg-pink-500/5 blur-[70px] animate-pulse" style={{ animationDuration: '6s' }}></div>
+      </div>
+
       {/* Header */}
-      <header className="sticky top-0 z-30 bg-surface-container-lowest/80 backdrop-blur-xl border-b border-outline-variant/20 px-4 py-3 flex items-center space-x-3">
-        <button
-          onClick={() => router.push("/chats")}
-          className="w-8 h-8 rounded-full bg-surface-container/50 flex items-center justify-center text-on-surface hover:bg-surface-container transition-colors cursor-pointer"
-        >
-          <span className="material-symbols-outlined text-[20px]">arrow_back</span>
-        </button>
+      <div className="px-4 pt-3 sticky top-0 z-30 shrink-0">
+        <header className="bg-white/40 backdrop-blur-xl border border-white/40 shadow-lg flex justify-between items-center px-3 py-2 h-14 rounded-2xl">
+          <div className="flex items-center gap-2 min-w-0">
+            <button
+              onClick={() => router.push("/chats")}
+              className="w-8 h-8 rounded-full bg-white/60 hover:bg-white text-on-surface flex items-center justify-center transition-all cursor-pointer shadow-sm border border-white shrink-0 active-scale"
+            >
+              <span className="material-symbols-outlined text-[18px]">arrow_back</span>
+            </button>
 
-        {friend ? (
-          <>
-            <div className="relative shrink-0">
-              <div className={`w-9 h-9 rounded-full bg-gradient-to-tr ${getAvatarGradient(friend.id)} flex items-center justify-center text-white font-extrabold text-xs shadow-md`}>
-                {getInitials(friend.name, friend.email)}
+            {friend ? (
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="relative shrink-0">
+                  <div className={`w-8 h-8 rounded-full bg-gradient-to-tr ${getAvatarGradient(friend.id)} flex items-center justify-center text-white font-extrabold text-[11px] shadow-sm`}>
+                    {getInitials(friend.name, friend.email)}
+                  </div>
+                  {friend.isOnline && (
+                    <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border-2 border-white rounded-full shadow-sm"></span>
+                  )}
+                </div>
+                <div className="flex-grow min-w-0">
+                  <h3 className="font-display font-black text-xs text-on-surface truncate leading-tight">
+                    {friend.name || friend.email.split("@")[0]}
+                  </h3>
+                  <p className="text-[9px] font-bold text-slate-500 leading-none mt-0.5">
+                    {friend.isOnline ? "Online" : "Offline"}
+                  </p>
+                </div>
               </div>
-              {friend.isOnline && (
-                <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border-2 border-background rounded-full shadow-sm"></span>
-              )}
-            </div>
-            <div className="flex-1 min-w-0">
-              <h3 className="font-display font-bold text-sm text-on-surface truncate leading-tight">
-                {friend.name || friend.email.split("@")[0]}
-              </h3>
-              <p className="text-[10px] text-outline leading-none mt-0.5">
-                {friend.isOnline ? "Online" : "Offline"}
-              </p>
-            </div>
-          </>
-        ) : (
-          <div className="flex-1 min-w-0 animate-pulse flex items-center space-x-2">
-            <div className="w-9 h-9 bg-surface-container rounded-full"></div>
-            <div className="space-y-1">
-              <div className="h-3 bg-surface-container rounded w-24"></div>
-              <div className="h-2 bg-surface-container rounded w-12"></div>
-            </div>
+            ) : (
+              <div className="flex items-center space-x-2 animate-pulse min-w-0">
+                <div className="w-8 h-8 bg-slate-200 rounded-full shrink-0"></div>
+                <div className="space-y-1 min-w-0">
+                  <div className="h-3 bg-slate-200 rounded w-16"></div>
+                  <div className="h-2 bg-slate-200 rounded w-10"></div>
+                </div>
+              </div>
+            )}
           </div>
-        )}
 
-        <button 
-          onClick={() => handleSendGameInvite("BATTLE")}
-          disabled={creatingGame}
-          className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center hover:bg-primary/20 transition-colors cursor-pointer active-scale"
-          title="Quick Invite to Battle"
-        >
-          <span className="material-symbols-outlined text-[18px]">sports_esports</span>
-        </button>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <button 
+              onClick={() => handleSendGameInvite("BATTLE")}
+              disabled={creatingGame}
+              className="w-8 h-8 rounded-full bg-primary/10 hover:bg-primary text-primary hover:text-white flex items-center justify-center border border-primary/20 transition-all cursor-pointer active-scale"
+              title="Quick Invite to Battle"
+            >
+              <span className="material-symbols-outlined text-[16px]">sports_esports</span>
+            </button>
 
-        <button 
-          onClick={() => setShowStatsPanel(true)}
-          className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center hover:bg-primary/20 transition-colors cursor-pointer active-scale"
-          title="View Game Stats & History"
-        >
-          <span className="material-symbols-outlined text-[18px]">bar_chart</span>
-        </button>
-      </header>
+            <button 
+              onClick={() => setShowStatsPanel(true)}
+              className="w-8 h-8 rounded-full bg-primary/10 hover:bg-primary text-primary hover:text-white flex items-center justify-center border border-primary/20 transition-all cursor-pointer active-scale"
+              title="View Game Stats & History"
+            >
+              <span className="material-symbols-outlined text-[16px]">bar_chart</span>
+            </button>
+          </div>
+        </header>
+      </div>
 
       {/* Message Window Area */}
-      <main ref={scrollContainerRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-4 bg-surface-container/10 relative">
+      <main ref={scrollContainerRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-4 relative z-10 scroll-hide">
         {loading ? (
           <div className="space-y-4 py-4">
             <div className="flex justify-start">
@@ -542,48 +555,48 @@ export default function ChatWindowClient({ user, recipientId }) {
 
               return (
                 <div key={message.id} className={`flex ${isMe ? "justify-end" : "justify-start"}`}>
-                  <div className="w-64 bg-gradient-to-tr from-surface-container-lowest to-surface-container border border-outline-variant/30 rounded-2xl p-4 shadow-md relative overflow-hidden group">
+                  <div className="w-64 bg-white/40 backdrop-blur-md border border-white/50 rounded-3xl p-4 shadow-md relative overflow-hidden group">
                     {/* Mode logo overlay */}
-                    <div className="absolute -top-3 -right-3 text-on-surface/5 group-hover:scale-110 transition-transform">
+                    <div className="absolute -top-3 -right-3 text-slate-400/10 group-hover:scale-110 transition-transform">
                       <span className="material-symbols-outlined text-[64px]">
                         {inviteMode === "MEMORY" ? "extension" : (inviteMode === "TICTACTOE" ? "grid_3x3" : (inviteMode === "WORD_GUESS" ? "notes" : "grid_view"))}
                       </span>
                     </div>
 
                     <div className="flex items-center space-x-2.5 mb-2 relative">
-                      <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
+                      <div className="w-8 h-8 rounded-lg bg-indigo-100 border border-indigo-200/50 text-indigo-700 flex items-center justify-center shrink-0">
                         <span className="material-symbols-outlined text-[20px]">
                           {inviteMode === "MEMORY" ? "extension" : (inviteMode === "TICTACTOE" ? "grid_3x3" : (inviteMode === "WORD_GUESS" ? "notes" : "grid_view"))}
                         </span>
                       </div>
                       <div>
-                        <h5 className="font-display font-extrabold text-xs text-on-surface">
+                        <h5 className="font-display font-black text-xs text-slate-800">
                           {inviteMode === "MEMORY" ? "Memory Match Challenge 🧩" : (inviteMode === "TICTACTOE" ? "Tic Tac Toe Challenge ❌⭕" : (inviteMode === "WORD_GUESS" ? "Word Guess Challenge 📝" : "Battle Grid Challenge 🎮"))}
                         </h5>
-                        <p className="text-[9px] text-outline uppercase tracking-wider font-semibold">1v1 Mode</p>
+                        <p className="text-[8px] text-indigo-800 uppercase tracking-widest font-black">1v1 Mode</p>
                       </div>
                     </div>
 
-                    <p className={`text-xs mb-4 pr-6 leading-relaxed ${isFinished ? "text-emerald-600 font-bold" : "text-on-surface-variant"}`}>
+                    <p className={`text-xs mb-4 pr-6 leading-relaxed ${isFinished ? "text-emerald-700 font-bold" : "text-slate-600"}`}>
                       {statusText}
                     </p>
 
                     <div className="flex items-center justify-between">
                       {isFinished ? (
-                        <div className="flex items-center gap-1 text-[10px] font-black text-emerald-600 bg-emerald-500/10 px-2 py-1 rounded-lg">
+                        <div className="flex items-center gap-1 text-[9px] font-black text-emerald-700 bg-emerald-100 border border-emerald-200/50 px-2 py-0.5 rounded-lg">
                           <span className="material-symbols-outlined text-[12px] font-bold">military_tech</span>
                           COMPLETED
                         </div>
                       ) : (
                         <a
                           href={`/game/${message.inviteGameId}`}
-                          className="px-3.5 py-1.5 bg-primary text-white text-xs font-bold rounded-xl active-scale transition-transform cursor-pointer inline-flex items-center"
+                          className="px-3.5 py-1.5 bg-gradient-to-r from-primary to-indigo-600 hover:from-primary-high hover:to-indigo-700 text-white text-xs font-black rounded-xl active-scale transition shadow-md cursor-pointer inline-flex items-center"
                         >
                           Join Match
-                          <span className="material-symbols-outlined text-[14px] ml-1">play_arrow</span>
+                          <span className="material-symbols-outlined text-[14px] ml-0.5">play_arrow</span>
                         </a>
                       )}
-                      <span className="text-[9px] text-outline">{timeStr}</span>
+                      <span className="text-[9px] text-slate-500 font-bold">{timeStr}</span>
                     </div>
                   </div>
                 </div>
@@ -606,14 +619,14 @@ export default function ChatWindowClient({ user, recipientId }) {
             return (
               <div key={message.id} className={`flex ${isMe ? "justify-end" : "justify-start"}`}>
                 <div
-                  className={`max-w-[75%] px-4 py-2.5 rounded-2xl shadow-sm relative ${
+                  className={`max-w-[75%] px-4 py-2.5 rounded-2xl shadow-sm relative border ${
                     isMe
-                      ? "bg-primary text-white rounded-tr-none"
-                      : "bg-surface-container-lowest text-on-surface border border-outline-variant/10 rounded-tl-none"
+                      ? "bg-gradient-to-r from-primary to-indigo-600 text-white rounded-tr-none border-primary/25"
+                      : "bg-white/40 backdrop-blur-md text-on-surface border-white/50 rounded-tl-none"
                   }`}
                 >
-                  <p className="text-xs leading-relaxed break-words">{message.content}</p>
-                  <span className={`text-[8px] block text-right mt-1.5 select-none ${isMe ? "text-white/60" : "text-outline"}`}>
+                  <p className="text-xs leading-relaxed break-words font-medium">{message.content}</p>
+                  <span className={`text-[8px] block text-right mt-1.5 select-none ${isMe ? "text-white/75" : "text-slate-500"}`}>
                     {timeStr}
                   </span>
                 </div>
@@ -626,12 +639,12 @@ export default function ChatWindowClient({ user, recipientId }) {
 
       {/* Attachment Panel Sheet */}
       {showAttachmentMenu && (
-        <div className="absolute bottom-[64px] left-0 w-full bg-surface-container-lowest border-t border-outline-variant/20 rounded-t-3xl shadow-[0px_-8px_24px_rgba(0,0,0,0.15)] z-20 p-5 transition-all duration-300 animate-slide-up">
+        <div className="absolute bottom-[72px] left-1/2 -translate-x-1/2 w-[92%] bg-white/40 backdrop-blur-xl border border-white/50 rounded-3xl shadow-[0px_-8px_32px_rgba(0,0,0,0.15)] z-20 p-5 transition-all duration-300 animate-slide-up">
           <div className="flex justify-between items-center mb-4">
-            <h4 className="font-display font-extrabold text-sm text-on-surface">Choose Game Mode</h4>
+            <h4 className="font-display font-black text-sm text-slate-800">Choose Game Mode</h4>
             <button
               onClick={() => setShowAttachmentMenu(false)}
-              className="w-7 h-7 rounded-full bg-surface-container flex items-center justify-center text-outline cursor-pointer"
+              className="w-7 h-7 rounded-full bg-white/60 hover:bg-white text-outline flex items-center justify-center cursor-pointer border border-white/80 active-scale"
             >
               <span className="material-symbols-outlined text-[16px]">close</span>
             </button>
@@ -641,78 +654,78 @@ export default function ChatWindowClient({ user, recipientId }) {
             <button
               onClick={() => handleSendGameInvite("BATTLE")}
               disabled={creatingGame}
-              className="flex flex-col items-center justify-center p-3 bg-surface-container rounded-2xl hover:bg-primary/5 active-scale cursor-pointer transition-all border border-outline-variant/10 text-center"
+              className="flex flex-col items-center justify-center p-3 bg-white/50 hover:bg-white border border-white/80 rounded-2xl active-scale cursor-pointer transition-all text-center shadow-sm"
             >
-              <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center mb-2">
-                <span className="material-symbols-outlined text-[24px]">grid_view</span>
+              <div className="w-9 h-9 rounded-full bg-primary/10 text-primary flex items-center justify-center mb-1.5 shrink-0">
+                <span className="material-symbols-outlined text-[20px]">grid_view</span>
               </div>
-              <span className="font-display font-extrabold text-[11px] text-on-surface mb-0.5">Battle Grid</span>
-              <span className="text-[8px] text-outline leading-tight">8x8 Grid Arena</span>
+              <span className="font-display font-black text-[10px] text-slate-800 mb-0.5">Battle Grid</span>
+              <span className="text-[7px] text-slate-500 font-bold leading-tight font-medium">8x8 Grid Arena</span>
             </button>
 
             {/* Memory Match */}
             <button
               onClick={() => handleSendGameInvite("MEMORY")}
               disabled={creatingGame}
-              className="flex flex-col items-center justify-center p-3 bg-surface-container rounded-2xl hover:bg-secondary/5 active-scale cursor-pointer transition-all border border-outline-variant/10 text-center"
+              className="flex flex-col items-center justify-center p-3 bg-white/50 hover:bg-white border border-white/80 rounded-2xl active-scale cursor-pointer transition-all text-center shadow-sm"
             >
-              <div className="w-10 h-10 rounded-full bg-secondary/10 text-secondary flex items-center justify-center mb-2">
-                <span className="material-symbols-outlined text-[24px]">extension</span>
+              <div className="w-9 h-9 rounded-full bg-secondary/10 text-secondary flex items-center justify-center mb-1.5 shrink-0">
+                <span className="material-symbols-outlined text-[20px]">extension</span>
               </div>
-              <span className="font-display font-extrabold text-[11px] text-on-surface mb-0.5">Memory Match</span>
-              <span className="text-[8px] text-outline leading-tight font-medium">Emoji pairing</span>
+              <span className="font-display font-black text-[10px] text-slate-800 mb-0.5">Memory Match</span>
+              <span className="text-[7px] text-slate-500 font-bold leading-tight font-medium">Emoji pairing</span>
             </button>
 
             {/* Tic Tac Toe */}
             <button
               onClick={() => handleSendGameInvite("TICTACTOE")}
               disabled={creatingGame}
-              className="flex flex-col items-center justify-center p-3 bg-surface-container rounded-2xl hover:bg-amber-500/5 active-scale cursor-pointer transition-all border border-outline-variant/10 text-center"
+              className="flex flex-col items-center justify-center p-3 bg-white/50 hover:bg-white border border-white/80 rounded-2xl active-scale cursor-pointer transition-all text-center shadow-sm"
             >
-              <div className="w-10 h-10 rounded-full bg-amber-500/10 text-amber-600 flex items-center justify-center mb-2">
-                <span className="material-symbols-outlined text-[24px]">grid_3x3</span>
+              <div className="w-9 h-9 rounded-full bg-amber-500/10 text-amber-600 flex items-center justify-center mb-1.5 shrink-0">
+                <span className="material-symbols-outlined text-[20px]">grid_3x3</span>
               </div>
-              <span className="font-display font-extrabold text-[11px] text-on-surface mb-0.5">Tic Tac Toe</span>
-              <span className="text-[8px] text-outline leading-tight font-medium">3-in-a-row classic</span>
+              <span className="font-display font-black text-[10px] text-slate-800 mb-0.5">Tic Tac Toe</span>
+              <span className="text-[7px] text-slate-500 font-bold leading-tight font-medium">3-in-a-row classic</span>
             </button>
 
             {/* Word Guess 4 */}
             <button
               onClick={() => handleSendGameInvite("WORD_GUESS", 4)}
               disabled={creatingGame}
-              className="flex flex-col items-center justify-center p-3 bg-surface-container rounded-2xl hover:bg-emerald-500/5 active-scale cursor-pointer transition-all border border-outline-variant/10 text-center"
+              className="flex flex-col items-center justify-center p-3 bg-white/50 hover:bg-white border border-white/80 rounded-2xl active-scale cursor-pointer transition-all text-center shadow-sm"
             >
-              <div className="w-10 h-10 rounded-full bg-emerald-500/10 text-emerald-600 flex items-center justify-center mb-2">
-                <span className="material-symbols-outlined text-[24px]">notes</span>
+              <div className="w-9 h-9 rounded-full bg-emerald-500/10 text-emerald-600 flex items-center justify-center mb-1.5 shrink-0">
+                <span className="material-symbols-outlined text-[20px]">notes</span>
               </div>
-              <span className="font-display font-extrabold text-[11px] text-on-surface mb-0.5">Word Guess 4</span>
-              <span className="text-[8px] text-outline leading-tight font-medium">4 words chain</span>
+              <span className="font-display font-black text-[10px] text-slate-800 mb-0.5">Word Guess 4</span>
+              <span className="text-[7px] text-slate-500 font-bold leading-tight font-medium">4 words chain</span>
             </button>
 
             {/* Word Guess 5 */}
             <button
               onClick={() => handleSendGameInvite("WORD_GUESS", 5)}
               disabled={creatingGame}
-              className="flex flex-col items-center justify-center p-3 bg-surface-container rounded-2xl hover:bg-purple-500/5 active-scale cursor-pointer transition-all border border-outline-variant/10 text-center"
+              className="flex flex-col items-center justify-center p-3 bg-white/50 hover:bg-white border border-white/80 rounded-2xl active-scale cursor-pointer transition-all text-center shadow-sm"
             >
-              <div className="w-10 h-10 rounded-full bg-purple-500/10 text-purple-600 flex items-center justify-center mb-2">
-                <span className="material-symbols-outlined text-[24px]">notes</span>
+              <div className="w-9 h-9 rounded-full bg-purple-500/10 text-purple-600 flex items-center justify-center mb-1.5 shrink-0">
+                <span className="material-symbols-outlined text-[20px]">notes</span>
               </div>
-              <span className="font-display font-extrabold text-[11px] text-on-surface mb-0.5">Word Guess 5</span>
-              <span className="text-[8px] text-outline leading-tight font-medium">5 words chain</span>
+              <span className="font-display font-black text-[10px] text-slate-800 mb-0.5">Word Guess 5</span>
+              <span className="text-[7px] text-slate-500 font-bold leading-tight font-medium">5 words chain</span>
             </button>
 
             {/* Word Guess 6 */}
             <button
               onClick={() => handleSendGameInvite("WORD_GUESS", 6)}
               disabled={creatingGame}
-              className="flex flex-col items-center justify-center p-3 bg-surface-container rounded-2xl hover:bg-rose-500/5 active-scale cursor-pointer transition-all border border-outline-variant/10 text-center"
+              className="flex flex-col items-center justify-center p-3 bg-white/50 hover:bg-white border border-white/80 rounded-2xl active-scale cursor-pointer transition-all text-center shadow-sm"
             >
-              <div className="w-10 h-10 rounded-full bg-rose-500/10 text-rose-600 flex items-center justify-center mb-2">
-                <span className="material-symbols-outlined text-[24px]">notes</span>
+              <div className="w-9 h-9 rounded-full bg-rose-500/10 text-rose-600 flex items-center justify-center mb-1.5 shrink-0">
+                <span className="material-symbols-outlined text-[20px]">notes</span>
               </div>
-              <span className="font-display font-extrabold text-[11px] text-on-surface mb-0.5">Word Guess 6</span>
-              <span className="text-[8px] text-outline leading-tight font-medium">6 words chain</span>
+              <span className="font-display font-black text-[10px] text-slate-800 mb-0.5">Word Guess 6</span>
+              <span className="text-[7px] text-slate-500 font-bold leading-tight font-medium">6 words chain</span>
             </button>
           </div>
         </div>
@@ -720,14 +733,14 @@ export default function ChatWindowClient({ user, recipientId }) {
 
       {/* Emoji / Sticker / GIF Sheet */}
       {showEmojiMenu && (
-        <div className="absolute bottom-[64px] left-0 w-full bg-surface-container-lowest border-t border-outline-variant/20 rounded-t-3xl shadow-[0px_-8px_24px_rgba(0,0,0,0.15)] z-20 flex flex-col h-[280px] animate-slide-up">
+        <div className="absolute bottom-[72px] left-1/2 -translate-x-1/2 w-[92%] bg-white/40 backdrop-blur-xl border border-white/50 rounded-3xl shadow-[0px_-8px_32px_rgba(0,0,0,0.15)] z-20 flex flex-col h-[280px] animate-slide-up overflow-hidden">
           {/* Header tabs */}
-          <div className="flex items-center justify-between border-b border-outline-variant/20 px-4 py-2 shrink-0">
+          <div className="flex items-center justify-between border-b border-white/40 px-4 py-2 shrink-0">
             <div className="flex space-x-4">
               <button
                 type="button"
                 onClick={() => setEmojiTab("emojis")}
-                className={`text-xs font-bold py-1 border-b-2 transition-colors ${
+                className={`text-xs font-black py-1 border-b-2 transition-colors ${
                   emojiTab === "emojis" ? "border-primary text-primary" : "border-transparent text-outline"
                 }`}
               >
@@ -736,7 +749,7 @@ export default function ChatWindowClient({ user, recipientId }) {
               <button
                 type="button"
                 onClick={() => setEmojiTab("stickers")}
-                className={`text-xs font-bold py-1 border-b-2 transition-colors ${
+                className={`text-xs font-black py-1 border-b-2 transition-colors ${
                   emojiTab === "stickers" ? "border-primary text-primary" : "border-transparent text-outline"
                 }`}
               >
@@ -745,7 +758,7 @@ export default function ChatWindowClient({ user, recipientId }) {
               <button
                 type="button"
                 onClick={() => setEmojiTab("gifs")}
-                className={`text-xs font-bold py-1 border-b-2 transition-colors ${
+                className={`text-xs font-black py-1 border-b-2 transition-colors ${
                   emojiTab === "gifs" ? "border-primary text-primary" : "border-transparent text-outline"
                 }`}
               >
@@ -755,7 +768,7 @@ export default function ChatWindowClient({ user, recipientId }) {
             <button
               type="button"
               onClick={() => setShowEmojiMenu(false)}
-              className="w-7 h-7 rounded-full bg-surface-container flex items-center justify-center text-outline cursor-pointer"
+              className="w-7 h-7 rounded-full bg-white/60 hover:bg-white text-outline flex items-center justify-center border border-white/80 active-scale cursor-pointer animate-fade-in"
             >
               <span className="material-symbols-outlined text-[16px]">close</span>
             </button>
@@ -787,9 +800,9 @@ export default function ChatWindowClient({ user, recipientId }) {
                     key={sticker.code}
                     type="button"
                     onClick={() => handleSendSticker(sticker.code)}
-                    className={`h-16 rounded-xl bg-gradient-to-tr ${sticker.gradient} flex items-center justify-center shadow-sm hover:scale-105 active-scale transition-all border border-white/10`}
+                    className={`h-14 rounded-2xl bg-gradient-to-tr ${sticker.gradient} flex items-center justify-center shadow-md hover:scale-105 active-scale transition-all border border-white/20`}
                   >
-                    <span className="font-display font-black text-xs text-white uppercase tracking-wider">
+                    <span className="font-display font-black text-[10px] text-white uppercase tracking-wider">
                       {sticker.label}
                     </span>
                   </button>
@@ -809,7 +822,7 @@ export default function ChatWindowClient({ user, recipientId }) {
                     placeholder="Search Giphy..."
                     value={gifSearchQuery}
                     onChange={(e) => setGifSearchQuery(e.target.value)}
-                    className="w-full pl-9 pr-3 py-1.5 bg-surface-container rounded-xl border-none text-xs text-on-surface placeholder-outline focus:outline-none focus:ring-1 focus:ring-primary/30 transition-all"
+                    className="w-full pl-9 pr-3 py-1.5 bg-white/60 hover:bg-white focus:bg-white border border-white/80 focus:border-primary rounded-xl text-xs text-on-surface placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-primary/20 transition-all font-medium"
                   />
                 </div>
 
@@ -824,7 +837,7 @@ export default function ChatWindowClient({ user, recipientId }) {
                         key={gif.id}
                         type="button"
                         onClick={() => handleSendGif(gif.images.fixed_height.url)}
-                        className="rounded-lg overflow-hidden h-20 bg-surface-container active-scale transition-transform cursor-pointer relative group border border-outline-variant/10"
+                        className="rounded-xl overflow-hidden h-20 bg-white/40 border border-white/50 active-scale transition-transform cursor-pointer relative group"
                       >
                         <img
                           src={gif.images.fixed_height.url}
@@ -842,19 +855,21 @@ export default function ChatWindowClient({ user, recipientId }) {
       )}
 
       {/* Input panel bar */}
-      <footer className="p-3 bg-surface-container-lowest border-t border-outline-variant/20 flex items-center space-x-2 shrink-0">
+      <footer className="p-3 bg-white/40 backdrop-blur-xl border border-white/50 rounded-2xl mx-4 mb-4 shadow-lg flex items-center space-x-2 shrink-0 relative z-20">
         <button
           type="button"
           onClick={() => {
             setShowAttachmentMenu(!showAttachmentMenu);
             setShowEmojiMenu(false);
           }}
-          className={`w-9 h-9 rounded-full flex items-center justify-center transition-all cursor-pointer ${
-            showAttachmentMenu ? "bg-primary text-white rotate-45" : "bg-surface-container text-on-surface-variant hover:bg-surface-container-high"
+          className={`w-9 h-9 rounded-full flex items-center justify-center border transition-all cursor-pointer active-scale shrink-0 ${
+            showAttachmentMenu 
+              ? "bg-primary text-white border-primary/20 rotate-45" 
+              : "bg-white/60 hover:bg-white text-on-surface-variant hover:text-on-surface border-white/80 shadow-sm"
           }`}
           title="Attach Game Invite"
         >
-          <span className="material-symbols-outlined text-[22px]">add</span>
+          <span className="material-symbols-outlined text-[20px]">add</span>
         </button>
 
         <button
@@ -863,15 +878,17 @@ export default function ChatWindowClient({ user, recipientId }) {
             setShowEmojiMenu(!showEmojiMenu);
             setShowAttachmentMenu(false);
           }}
-          className={`w-9 h-9 rounded-full flex items-center justify-center transition-all cursor-pointer ${
-            showEmojiMenu ? "bg-primary text-white" : "bg-surface-container text-on-surface-variant hover:bg-surface-container-high"
+          className={`w-9 h-9 rounded-full flex items-center justify-center border transition-all cursor-pointer active-scale shrink-0 ${
+            showEmojiMenu 
+              ? "bg-primary text-white border-primary/20" 
+              : "bg-white/60 hover:bg-white text-on-surface-variant hover:text-on-surface border-white/80 shadow-sm"
           }`}
           title="Send Sticker / Emoji / GIF"
         >
-          <span className="material-symbols-outlined text-[22px]">sentiment_satisfied</span>
+          <span className="material-symbols-outlined text-[20px]">sentiment_satisfied</span>
         </button>
 
-        <form onSubmit={handleSendMessage} className="flex-1 flex items-center space-x-2">
+        <form onSubmit={handleSendMessage} className="flex-1 flex items-center space-x-2 min-w-0">
           <input
             type="text"
             placeholder="Type a message..."
@@ -884,14 +901,14 @@ export default function ChatWindowClient({ user, recipientId }) {
               }, 300);
             }}
             disabled={sending || creatingGame}
-            className="flex-1 bg-surface-container rounded-full px-4 py-2 text-sm text-on-surface placeholder-outline border-none focus:outline-none focus:ring-1 focus:ring-primary/20 transition-all"
+            className="flex-1 bg-white/60 hover:bg-white text-sm text-on-surface placeholder-slate-400 border border-white/85 focus:border-primary focus:bg-white rounded-full px-4 py-2 focus:outline-none focus:ring-1 focus:ring-primary/20 transition-all min-w-0 font-medium"
           />
           <button
             type="submit"
             disabled={!inputText.trim() || sending}
-            className="w-9 h-9 rounded-full bg-primary text-white flex items-center justify-center hover:bg-primary-high active-scale transition-all disabled:opacity-50 disabled:scale-100 cursor-pointer"
+            className="w-9 h-9 rounded-full bg-gradient-to-r from-primary to-indigo-600 hover:from-primary-high hover:to-indigo-700 text-white flex items-center justify-center active-scale transition-all border border-primary/20 disabled:opacity-50 disabled:scale-100 cursor-pointer shrink-0"
           >
-            <span className="material-symbols-outlined text-[18px]">send</span>
+            <span className="material-symbols-outlined text-[16px]">send</span>
           </button>
         </form>
       </footer>
